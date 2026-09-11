@@ -1,0 +1,26 @@
+# fly.toml app configuration for ppt-slide-localize
+app = "ppt-slide-localize"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  DATA_DIR = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[mounts]
+  source = "localize_data"
+  destination = "/data"

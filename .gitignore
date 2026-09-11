@@ -1,0 +1,38 @@
+.DS_Store
+**/.DS_Store
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
+# Large / unrelated workspaces (keep this repo focused on the PPT EN workflow)
+/Project/
+/Global Support/
+/日常杂物/
+
+# Accidental brace-expansion leftover dir
+/workflows/ppt-slide-image-en-pdf/{input,pages_src,pages_en,output,scripts}/
+
+# Python / web
+__pycache__/
+*.pyc
+.venv/
+
+# Large per-run page images (keep manifests/scripts tracked intentionally)
+workflows/ppt-slide-image-en-pdf/runs/**/pages_src/
+workflows/ppt-slide-image-en-pdf/runs/**/pages_en/
+workflows/ppt-slide-image-en-pdf/runs/**/pages_out/
+workflows/ppt-slide-image-en-pdf/runs/**/output/
+workflows/ppt-slide-image-en-pdf/pages_src/
+workflows/ppt-slide-image-en-pdf/pages_en/
+
+# Sample / job outputs (decks are confidential — never commit)
+workflows/ppt-slide-image-en-pdf/output/**
+!workflows/ppt-slide-image-en-pdf/output/.gitkeep
+skills/ppt-slide-localize/output/
+
+# Local sample uploads (keep .gitkeep only)
+workflows/ppt-slide-image-en-pdf/input/*
+!workflows/ppt-slide-image-en-pdf/input/.gitkeep
+skills/ppt-slide-localize/runs/

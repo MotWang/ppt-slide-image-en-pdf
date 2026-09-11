@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PPT Slide Localize</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0f1419;
+      --bg1: #1a2332;
+      --ink: #e8eef6;
+      --muted: #9aabbd;
+      --accent: #3d9cf0;
+      --accent2: #e8a87c;
+      --line: rgba(232, 238, 246, 0.12);
+      --ok: #5dcca0;
+      --err: #f07178;
+      --card: rgba(255, 255, 255, 0.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #243552 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #3a2a22 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+    .lead { color: var(--muted); margin: 0 0 32px; line-height: 1.5; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+    }
+    label.field {
+      display: block;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 16px 0 8px;
+    }
+    label.field:first-child { margin-top: 0; }
+    .drop {
+      border: 1.5px dashed rgba(61, 156, 240, 0.45);
+      border-radius: 12px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: rgba(61, 156, 240, 0.06);
+    }
+    .drop.drag { border-color: var(--accent2); background: rgba(232, 168, 124, 0.08); }
+    .drop strong { display: block; margin-bottom: 6px; }
+    .drop span { color: var(--muted); font-size: 0.92rem; }
+    input[type="file"] { display: none; }
+    .langs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 520px) {
+      .langs { grid-template-columns: repeat(2, 1fr); }
+    }
+    .langs label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .langs input { accent-color: var(--accent); }
+    .langs label:has(input:checked) {
+      border-color: var(--accent);
+      background: rgba(61, 156, 240, 0.15);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--ink);
+      font: inherit;
+    }
+    button#submit {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      color: #0b1220;
+      background: linear-gradient(90deg, var(--accent), #7ec8ff);
+    }
+    button#submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    details.advanced {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    details.advanced summary { cursor: pointer; color: var(--ink); }
+    #status {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      font-size: 0.95rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      display: none;
+    }
+    #status.show { display: block; }
+    #status.ok { border-color: rgba(93, 204, 160, 0.4); color: var(--ok); }
+    #status.err { border-color: rgba(240, 113, 120, 0.45); color: var(--err); }
+    #status.info { color: var(--ink); }
+    a { color: var(--accent); }
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Slide Localize</h1>
+    <p class="lead">Drop a PDF or PPTX, pick a language, submit. No local install — this site talks to the hosted API.</p>
+
+    <div class="panel">
+      <label class="field">File</label>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop PDF here">
+        <strong id="fileLabel">Drop PDF / PPTX here</strong>
+        <span>or click to browse · supports large BPs up to ~100 pages (batched)</span>
+      </div>
+      <input type="file" id="file" accept=".pdf,.pptx,application/pdf" />
+
+      <label class="field">Target language</label>
+      <div class="langs">
+        <label><input type="radio" name="lang" value="en" checked /> EN</label>
+        <label><input type="radio" name="lang" value="zh" /> 中文</label>
+        <label><input type="radio" name="lang" value="ko" /> 한국어</label>
+        <label><input type="radio" name="lang" value="ja" /> 日本語</label>
+      </div>
+
+      <div class="row">
+        <label class="toggle">
+          <input type="checkbox" id="wm" checked />
+          Remove watermarks
+        </label>
+        <label class="toggle" title="Pages processed per Automation run">
+          Batch size
+          <select id="batchSize" style="margin-left:6px;background:#0b1220;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 8px;">
+            <option value="5" selected>5</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+          </select>
+        </label>
+      </div>
+
+      <details class="advanced" id="advancedBox" open>
+        <summary>Access (if API returns 401)</summary>
+        <label class="field">Access token</label>
+        <input type="text" id="accessToken" placeholder="Paste team token if required" autocomplete="off" />
+        <label class="field">API base URL</label>
+        <input type="text" id="apiBase" placeholder="Same site by default" />
+        <p id="authHint" style="color:var(--muted);font-size:0.85rem;margin:8px 0 0;"></p>
+      </details>
+
+      <button type="button" id="submit">Submit job</button>
+      <div id="status" role="status"></div>
+    </div>
+
+    <footer>
+      Hosted mode uses this same origin as the API. Local dev: <code>python3 web/server.py</code><br />
+      Skill: <code>ppt-slide-localize</code>
+    </footer>
+  </main>
+  <script>
+    const LS_KEY = "ppt_slide_localize_api_base";
+    const LS_TOKEN = "ppt_slide_localize_token";
+    const drop = document.getElementById("drop");
+    const fileInput = document.getElementById("file");
+    const fileLabel = document.getElementById("fileLabel");
+    const apiBase = document.getElementById("apiBase");
+    const accessToken = document.getElementById("accessToken");
+    const statusEl = document.getElementById("status");
+    const submitBtn = document.getElementById("submit");
+    let selectedFile = null;
+
+    function defaultApiBase() {
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        return location.origin;
+      }
+      return "http://127.0.0.1:8787";
+    }
+    apiBase.value = localStorage.getItem(LS_KEY) || defaultApiBase();
+    accessToken.value = localStorage.getItem(LS_TOKEN) || "";
+    apiBase.addEventListener("change", () => {
+      localStorage.setItem(LS_KEY, apiBase.value.trim().replace(/\/$/, ""));
+    });
+    accessToken.addEventListener("change", () => {
+      localStorage.setItem(LS_TOKEN, accessToken.value.trim());
+    });
+
+    // Show whether hosted webhook is wired
+    fetch((localStorage.getItem(LS_KEY) || defaultApiBase()) + "/health")
+      .then((r) => r.json())
+      .then((h) => {
+        window.__health = h;
+        const hint = document.getElementById("authHint");
+        if (!hint) return;
+        if (h.webhook_configured) {
+          hint.textContent = "Automation webhook: configured on server.";
+        } else {
+          hint.textContent = "Automation webhook: not set yet (jobs wait until Cursor Automation is wired).";
+        }
+      })
+      .catch(() => {});
+
+    function authHeaders() {
+      const t = (accessToken.value || "").trim();
+      return t ? { "X-Access-Token": t } : {};
+    }
+
+    function setStatus(kind, text) {
+      statusEl.className = "show " + kind;
+      statusEl.textContent = text;
+    }
+
+    function setFile(f) {
+      selectedFile = f || null;
+      fileLabel.textContent = f ? f.name : "Drop PDF / PPTX here";
+    }
+
+    drop.addEventListener("click", () => fileInput.click());
+    drop.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") fileInput.click();
+    });
+    fileInput.addEventListener("change", () => setFile(fileInput.files[0]));
+
+    ["dragenter", "dragover"].forEach((ev) => {
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.add("drag");
+      });
+    });
+    ["dragleave", "drop"].forEach((ev) => {
+      drop.addEventListener(ev, (e) => {
+        e.preventDefault();
+        drop.classList.remove("drag");
+      });
+    });
+    drop.addEventListener("drop", (e) => {
+      const f = e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+
+    async function pollJob(base, runId, tries = 40) {
+      for (let i = 0; i < tries; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const r = await fetch(base + "/v1/jobs/" + encodeURIComponent(runId), {
+            headers: authHeaders(),
+          });
+          if (!r.ok) continue;
+          const j = await r.json();
+          const prog = (j.checkpoint && j.checkpoint.progress) || "?";
+          setStatus(
+            "info",
+            "Job " + runId + " · status=" + j.status + " · progress=" + prog +
+              (j.message ? "\n" + j.message : "") +
+              (j.webhook_configured === false || (window.__health && !window.__health.webhook_configured)
+                ? "\n\nNote: Automation webhook not configured on server yet."
+                : "\n\nAutomation webhook should pick this up.") +
+              "\nDownload when ready:\n" +
+              base + "/v1/jobs/" + runId + "/download"
+          );
+          if (j.status === "assembled") {
+            setStatus(
+              "ok",
+              "Ready: " + runId + "\nDownload: " + base + "/v1/jobs/" + runId + "/download"
+            );
+            return;
+          }
+          if (j.status === "failed") {
+            setStatus("err", "Job failed: " + (j.error || j.message || "unknown"));
+            return;
+          }
+        } catch (_) { /* keep polling */ }
+      }
+    }
+
+    submitBtn.addEventListener("click", async () => {
+      const base = (apiBase.value || "").trim().replace(/\/$/, "");
+      localStorage.setItem(LS_KEY, base);
+      if (!selectedFile) {
+        setStatus("err", "Please choose a PDF or PPTX first.");
+        return;
+      }
+      const lang = (document.querySelector('input[name="lang"]:checked') || {}).value || "en";
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      fd.append("target_lang", lang);
+      fd.append("remove_watermarks", document.getElementById("wm").checked ? "true" : "false");
+      fd.append("auto_export", "true");
+      fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "5");
+
+      submitBtn.disabled = true;
+      setStatus("info", "Submitting to " + base + " …");
+      try {
+        localStorage.setItem(LS_TOKEN, (accessToken.value || "").trim());
+        const res = await fetch(base + "/v1/jobs", {
+          method: "POST",
+          body: fd,
+          headers: authHeaders(),
+        });
+        const text = await res.text();
+        let body;
+        try { body = JSON.parse(text); } catch { body = { detail: text }; }
+        if (!res.ok) {
+          const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail || body, null, 2);
+          setStatus(
+            "err",
+            "API error (" + res.status + ").\n\n" + detail +
+              "\n\nIf this is local: python3 web/server.py — if hosted, check ACCESS_TOKEN / Advanced settings."
+          );
+          return;
+        }
+        const runId = body.run_id;
+        setStatus(
+          "ok",
+          "Created job " + runId + " · lang=" + body.target_lang +
+            " · status=" + body.status +
+            "\n" + (body.message || "") +
+            "\n\nDownload when ready: " + base + "/v1/jobs/" + runId + "/download"
+        );
+        pollJob(base, runId);
+      } catch (e) {
+        setStatus(
+          "err",
+          "Cannot reach API at " + base + "\n" + (e && e.message ? e.message : e)
+        );
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

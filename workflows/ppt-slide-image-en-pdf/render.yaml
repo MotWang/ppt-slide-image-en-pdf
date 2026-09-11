@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ppt-slide-localize
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 10000
+      - key: DATA_DIR
+        value: /data
+      - key: ACCESS_TOKEN
+        sync: false
+      - key: CURSOR_WEBHOOK_URL
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+    disk:
+      name: localize-data
+      mountPath: /data
+      sizeGB: 1
