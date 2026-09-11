@@ -136,7 +136,7 @@
       color: var(--ink);
       font: inherit;
     }
-    button#submit, button.ghost {
+    button#submit, button.ghost, button.dl {
       margin-top: 20px;
       width: 100%;
       padding: 14px 18px;
@@ -148,7 +148,7 @@
       color: #0b1220;
       background: linear-gradient(90deg, var(--accent), #7ec8ff);
     }
-    button#submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    button#submit:disabled, button.dl:disabled { opacity: 0.5; cursor: not-allowed; }
     button.ghost {
       margin-top: 0;
       width: auto;
@@ -160,6 +160,17 @@
       border: 1px solid var(--line);
     }
     button.ghost:hover { border-color: var(--accent); }
+    button.dl {
+      margin-top: 12px;
+      color: #062416;
+      background: linear-gradient(90deg, #3bbf8c, var(--ok));
+    }
+    button.dl.sm {
+      margin-top: 0;
+      width: auto;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+    }
     details.advanced {
       margin-top: 16px;
       border: 1px solid var(--line);
@@ -459,22 +470,64 @@
         : j.webhook_status
           ? "Webhook " + j.webhook_status + (j.last_webhook_event ? " · " + j.last_webhook_event : "")
           : "";
-      const dl = base + "/v1/jobs/" + encodeURIComponent(j.run_id) + "/download";
-      const kind = j.status === "assembled" ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
+      const ready = j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length);
+      const kind = ready ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
+      const fname = (j.output_pdfs && j.output_pdfs[0]) || ((j.output_pdf || "").split("/").pop()) || (j.run_id + ".pdf");
       setStatusHtml(
         kind,
         "<div class='pct'><span>" + esc(j.run_id) + " · " + esc(j.status) + "</span><span>" +
           esc(prog.label) + " pages (" + prog.pct + "%)</span></div>" +
-        "<div class='bar" + (j.status === "assembled" ? " ok" : "") + "' aria-hidden='true'><i style='width:" + prog.pct + "%'></i></div>" +
+        "<div class='bar" + (ready ? " ok" : "") + "' aria-hidden='true'><i style='width:" + prog.pct + "%'></i></div>" +
         "<div class='meta'>" + esc(j.message || "") +
           (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
           (wh ? "\n" + esc(wh) : "") +
           "\nUpdated " + esc(j.updated_at || "") +
-          (j.status === "assembled"
-            ? "\n<a href='" + esc(dl) + "'>Download PDF</a>"
-            : "\nWatching live… <a href='" + esc(dl) + "'>download link</a>") +
-        "</div>"
+          (ready ? "" : "\nWatching live…") +
+        "</div>" +
+        (ready
+          ? "<button type='button' class='dl' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>"
+          : "")
       );
+      const btn = statusEl.querySelector("[data-dl]");
+      if (btn) {
+        btn.addEventListener("click", () => triggerDownload(base, btn.getAttribute("data-dl"), btn.getAttribute("data-name"), btn));
+      }
+    }
+
+    async function triggerDownload(base, runId, filename, btn) {
+      if (!runId) return;
+      const prev = btn ? btn.textContent : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Downloading…";
+      }
+      try {
+        const r = await fetch(base + "/v1/jobs/" + encodeURIComponent(runId) + "/download", {
+          headers: authHeaders(),
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          throw new Error(t || ("HTTP " + r.status));
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename || (runId + ".pdf");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        if (btn) btn.textContent = "Downloaded";
+      } catch (e) {
+        if (btn) btn.textContent = "Retry download";
+        setStatus("err", "Download failed: " + (e && e.message ? e.message : e));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          setTimeout(() => { if (btn.textContent === "Downloaded") btn.textContent = prev || "Download PDF"; }, 2000);
+        }
+      }
     }
 
     function renderJobsBoard(jobs, base) {
@@ -491,12 +544,13 @@
       jobsList.innerHTML = recent.map((j) => {
         const prog = progressFromJob(j);
         const active = j.run_id === watchedRunId;
-        const stateClass = j.status === "assembled" ? "ready" : j.status === "failed" ? "failed" : isRunning(j.status) ? "running" : "";
-        const dl = base + "/v1/jobs/" + encodeURIComponent(j.run_id) + "/download";
+        const ready = j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length);
+        const stateClass = ready ? "ready" : j.status === "failed" ? "failed" : isRunning(j.status) ? "running" : "";
+        const fname = (j.output_pdfs && j.output_pdfs[0]) || (j.run_id + ".pdf");
         const actions = [];
         actions.push("<button type='button' class='ghost' data-watch='" + esc(j.run_id) + "'>Watch</button>");
-        if (j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length)) {
-          actions.push("<a class='ghost' style='display:inline-flex;align-items:center;text-decoration:none' href='" + esc(dl) + "'>Download</a>");
+        if (ready) {
+          actions.push("<button type='button' class='dl sm' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>");
         }
         return (
           "<div class='job " + stateClass + (active ? " active" : "") + "'>" +
@@ -507,7 +561,7 @@
             "<div class='pct'><span>" + esc((j.target_lang || "").toUpperCase()) +
               (j.batch_size ? " · batch " + esc(j.batch_size) : "") +
               "</span><span>" + esc(prog.label) + " (" + prog.pct + "%)</span></div>" +
-            "<div class='bar" + (j.status === "assembled" ? " ok" : "") + "'><i style='width:" + prog.pct + "%'></i></div>" +
+            "<div class='bar" + (ready ? " ok" : "") + "'><i style='width:" + prog.pct + "%'></i></div>" +
             "<div class='job-meta'>" + esc(j.message || "") +
               (j.updated_at ? "\nUpdated " + esc(j.updated_at) : "") +
             "</div>" +
@@ -517,6 +571,9 @@
       }).join("");
       jobsList.querySelectorAll("[data-watch]").forEach((btn) => {
         btn.addEventListener("click", () => startPoll(base, btn.getAttribute("data-watch")));
+      });
+      jobsList.querySelectorAll("[data-dl]").forEach((btn) => {
+        btn.addEventListener("click", () => triggerDownload(base, btn.getAttribute("data-dl"), btn.getAttribute("data-name"), btn));
       });
     }
 

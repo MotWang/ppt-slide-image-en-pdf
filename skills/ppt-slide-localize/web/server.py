@@ -458,7 +458,10 @@ def get_job(run_id: str, _: None = Depends(require_access)) -> dict:
     job = read_job(run_dir)
     cp = checkpoint_dict(run_dir)
     out_pdfs = list((run_dir / "output").glob("*.pdf")) if (run_dir / "output").exists() else []
-    if cp.get("complete") and out_pdfs and job.get("status") not in {"assembled", "failed"}:
+    if cp.get("complete") and not out_pdfs and job.get("status") not in {"failed"}:
+        finalize_if_complete(run_dir, job, cp)
+        out_pdfs = list((run_dir / "output").glob("*.pdf")) if (run_dir / "output").exists() else []
+    elif cp.get("complete") and out_pdfs and job.get("status") not in {"assembled", "failed"}:
         job["status"] = "assembled"
         job["message"] = "Localized PDF ready."
         job["output_pdf"] = str(out_pdfs[0].relative_to(run_dir))
@@ -479,7 +482,12 @@ def download_job(run_id: str, _: None = Depends(require_access)) -> FileResponse
     lang = job.get("target_lang") or ""
     preferred = [p for p in pdfs if f"_{lang}." in p.name or p.name.endswith(f"_{lang}.pdf")]
     path = preferred[0] if preferred else pdfs[0]
-    return FileResponse(path, filename=path.name, media_type="application/pdf")
+    return FileResponse(
+        path,
+        filename=path.name,
+        media_type="application/pdf",
+        content_disposition_type="attachment",
+    )
 
 
 @app.get("/v1/jobs/{run_id}/input")

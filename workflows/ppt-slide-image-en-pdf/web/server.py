@@ -482,7 +482,12 @@ def download_job(run_id: str, _: None = Depends(require_access)) -> FileResponse
     lang = job.get("target_lang") or ""
     preferred = [p for p in pdfs if f"_{lang}." in p.name or p.name.endswith(f"_{lang}.pdf")]
     path = preferred[0] if preferred else pdfs[0]
-    return FileResponse(path, filename=path.name, media_type="application/pdf")
+    return FileResponse(
+        path,
+        filename=path.name,
+        media_type="application/pdf",
+        content_disposition_type="attachment",
+    )
 
 
 @app.get("/v1/jobs/{run_id}/input")
