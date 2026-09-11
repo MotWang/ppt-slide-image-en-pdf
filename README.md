@@ -10,7 +10,7 @@ Image-first PPT/PDF localization: recreate each slide as a localized page image 
 **Live site:** https://ppt-slide-localize.fly.dev/  
 **Repo:** https://github.com/MotWang/ppt-slide-image-en-pdf
 
-Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, etc.) live only in Fly/Render env vars — never commit them. Do not commit deck PDFs or `runs/` page images.
+Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live only in Fly/Render env vars — never commit them. Do not commit deck PDFs or `runs/` page images.
 
 ---
 
@@ -55,7 +55,8 @@ Optional environment variables:
 | `DEFAULT_BATCH_SIZE` | Default batch size | `5` |
 | `ACCESS_TOKEN` | Optional shared secret | empty (no auth) |
 | `PUBLIC_BASE_URL` | Public URL (written into job callback links) | local origin |
-| `CURSOR_WEBHOOK_URL` | Cursor Automation webhook | empty (job on disk only) |
+| `CURSOR_WEBHOOK_URL` | Cursor Automation webhook URL | empty (job on disk only) |
+| `CURSOR_WEBHOOK_AUTH` | Automation auth (`Bearer …` or raw `crsr_…` key) | empty (webhook calls fail with 401) |
 | `WORKFLOW_ROOT` / `RUNS_DIR` | Workflow root / runs directory | see `web/server.py` |
 
 ### 3. Agent / Automation rules
@@ -137,9 +138,12 @@ fly apps create ppt-slide-localize          # once
 fly volumes create localize_data --region nrt --size 1
 fly secrets set PUBLIC_BASE_URL='https://ppt-slide-localize.fly.dev'
 fly secrets set CURSOR_WEBHOOK_URL='https://api2.cursor.sh/automations/webhook/...'
+fly secrets set CURSOR_WEBHOOK_AUTH='Bearer crsr_...'   # Generate auth header in Automations UI
 # optional: fly secrets set ACCESS_TOKEN='...'
 fly deploy
 ```
+
+Webhook calls require **both** URL and auth. Without `CURSOR_WEBHOOK_AUTH`, jobs stay at `exported` and never start.
 
 Or use [Render](https://render.com) with `workflows/ppt-slide-image-en-pdf/render.yaml`.
 

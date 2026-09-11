@@ -5,9 +5,11 @@ Env:
   PORT                 default 8787
   HOST                 default 0.0.0.0 (cloud) — use 127.0.0.1 locally if desired
   DATA_DIR             optional absolute path for runs/ (persistent volume)
-  ACCESS_TOKEN         if set, require header X-Access-Token or ?token=
-  CURSOR_WEBHOOK_URL   optional; POST JSON when a job is created/exported
-  PUBLIC_BASE_URL      optional; included in webhook payload for callbacks
+  ACCESS_TOKEN              if set, require header X-Access-Token or ?token=
+  CURSOR_WEBHOOK_URL        optional; POST JSON when a job is created/exported
+  CURSOR_WEBHOOK_AUTH       Bearer token for Cursor Automation (raw key or
+                            full "Bearer …" / "Authorization: Bearer …")
+  PUBLIC_BASE_URL           optional; included in webhook payload for callbacks
 """
 
 from __future__ import annotations
@@ -42,6 +44,7 @@ ALLOWED_LANGS = {"en", "zh", "ko", "ja"}
 SLUG_RE = re.compile(r"[^a-zA-Z0-9._-]+")
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN", "").strip()
 CURSOR_WEBHOOK_URL = os.environ.get("CURSOR_WEBHOOK_URL", "").strip()
+CURSOR_WEBHOOK_AUTH = os.environ.get("CURSOR_WEBHOOK_AUTH", "").strip()
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 # Large BP support (60–70+ pages); hard cap keeps runaway jobs bounded.
@@ -49,7 +52,24 @@ MAX_PAGES = int(os.environ.get("MAX_PAGES", "100"))
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "150"))
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "5"))
 
-app = FastAPI(title="PPT Slide Localize API", version="1.2.0")
+
+def webhook_authorization_header() -> str | None:
+    """Normalize Automation auth into an Authorization header value."""
+    raw = CURSOR_WEBHOOK_AUTH
+    if not raw:
+        return None
+    if raw.lower().startswith("authorization:"):
+        raw = raw.split(":", 1)[1].strip()
+    if raw.lower().startswith("bearer "):
+        return raw
+    return f"Bearer {raw}"
+
+
+def webhook_ready() -> bool:
+    return bool(CURSOR_WEBHOOK_URL and webhook_authorization_header())
+
+
+app = FastAPI(title="PPT Slide Localize API", version="1.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -185,26 +205,51 @@ def build_webhook_payload(job: dict, event: str = "job.created") -> dict:
 
 def notify_cursor_webhook(job: dict, event: str = "job.created") -> None:
     if not CURSOR_WEBHOOK_URL:
+        job["webhook_status"] = None
+        job["webhook_error"] = "CURSOR_WEBHOOK_URL not set"
+        return
+    auth = webhook_authorization_header()
+    if not auth:
+        job["webhook_status"] = None
+        job["webhook_error"] = (
+            "CURSOR_WEBHOOK_AUTH not set. In Cursor Automations → webhook → "
+            "Generate auth header, then fly secrets set CURSOR_WEBHOOK_AUTH='…'"
+        )
         return
     payload = build_webhook_payload(job, event=event)
     data = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": auth,
+        "User-Agent": "ppt-slide-localize/1.3",
+    }
     req = urllib.request.Request(
         CURSOR_WEBHOOK_URL,
         data=data,
-        headers={"Content-Type": "application/json", "User-Agent": "ppt-slide-localize/1.2"},
+        headers=headers,
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode("utf-8", errors="replace")[:500]
             job["webhook_status"] = resp.status
-            job["webhook_error"] = None
+            job["webhook_error"] = None if 200 <= resp.status < 300 else body
             job["last_webhook_event"] = event
+            if 200 <= resp.status < 300 and job.get("status") in {"exported", "queued"}:
+                job["status"] = "generating"
+                job["message"] = (
+                    f"Automation triggered ({event}). Progress "
+                    f"{payload.get('progress') or '?'}; batch={payload.get('batch_pages')}"
+                )
     except urllib.error.HTTPError as e:
         job["webhook_status"] = e.code
         job["webhook_error"] = e.read().decode("utf-8", errors="replace")[:500]
     except urllib.error.URLError as e:
+        job["webhook_status"] = None
         job["webhook_error"] = str(e)
     except Exception as e:
+        job["webhook_status"] = None
         job["webhook_error"] = str(e)
 
 
@@ -224,7 +269,9 @@ def health() -> dict:
         "runs": str(RUNS),
         "time": utc_now(),
         "auth_required": bool(ACCESS_TOKEN),
-        "webhook_configured": bool(CURSOR_WEBHOOK_URL),
+        "webhook_url_configured": bool(CURSOR_WEBHOOK_URL),
+        "webhook_auth_configured": bool(webhook_authorization_header()),
+        "webhook_configured": webhook_ready(),
         "max_pages": MAX_PAGES,
         "max_upload_mb": MAX_UPLOAD_MB,
         "default_batch_size": DEFAULT_BATCH_SIZE,

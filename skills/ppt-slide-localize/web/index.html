@@ -255,9 +255,13 @@
         const hint = document.getElementById("authHint");
         if (!hint) return;
         if (h.webhook_configured) {
-          hint.textContent = "Automation webhook: configured on server.";
+          hint.textContent = "Automation webhook: ready (URL + auth).";
+        } else if (h.webhook_url_configured && !h.webhook_auth_configured) {
+          hint.textContent =
+            "Automation webhook URL is set, but CURSOR_WEBHOOK_AUTH is missing — jobs will not start until auth is configured.";
         } else {
-          hint.textContent = "Automation webhook: not set yet (jobs wait until Cursor Automation is wired).";
+          hint.textContent =
+            "Automation webhook: not set yet (jobs wait until Cursor Automation URL + auth are wired).";
         }
       })
       .catch(() => {});
@@ -310,13 +314,24 @@
           if (!r.ok) continue;
           const j = await r.json();
           const prog = (j.checkpoint && j.checkpoint.progress) || "?";
+          const wh =
+            j.webhook_error
+              ? "\n\nWebhook error (" + (j.webhook_status || "?") + "): " + j.webhook_error
+              : j.webhook_status
+                ? "\n\nWebhook OK (" + j.webhook_status + ")"
+                : "";
+          const ready =
+            window.__health && window.__health.webhook_configured
+              ? "\nAutomation should be processing this job."
+              : window.__health && window.__health.webhook_url_configured && !window.__health.webhook_auth_configured
+                ? "\n\nBlocked: set CURSOR_WEBHOOK_AUTH on the server (Generate auth header in Cursor Automations)."
+                : "\n\nNote: Automation webhook not fully configured on server yet.";
           setStatus(
-            "info",
+            j.webhook_error ? "err" : "info",
             "Job " + runId + " · status=" + j.status + " · progress=" + prog +
               (j.message ? "\n" + j.message : "") +
-              (j.webhook_configured === false || (window.__health && !window.__health.webhook_configured)
-                ? "\n\nNote: Automation webhook not configured on server yet."
-                : "\n\nAutomation webhook should pick this up.") +
+              wh +
+              ready +
               "\nDownload when ready:\n" +
               base + "/v1/jobs/" + runId + "/download"
           );
