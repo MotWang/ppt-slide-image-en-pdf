@@ -32,7 +32,7 @@
         linear-gradient(165deg, var(--bg0), var(--bg1));
     }
     main {
-      max-width: 720px;
+      max-width: 760px;
       margin: 0 auto;
       padding: 48px 20px 80px;
     }
@@ -51,6 +51,21 @@
       padding: 24px;
       backdrop-filter: blur(8px);
     }
+    .panel + .panel { margin-top: 18px; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .panel-head .hint { color: var(--muted); font-size: 0.85rem; }
     label.field {
       display: block;
       font-size: 0.8rem;
@@ -121,7 +136,7 @@
       color: var(--ink);
       font: inherit;
     }
-    button#submit {
+    button#submit, button.ghost {
       margin-top: 20px;
       width: 100%;
       padding: 14px 18px;
@@ -134,6 +149,17 @@
       background: linear-gradient(90deg, var(--accent), #7ec8ff);
     }
     button#submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.ghost {
+      margin-top: 0;
+      width: auto;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line);
+    }
+    button.ghost:hover { border-color: var(--accent); }
     details.advanced {
       margin-top: 16px;
       border: 1px solid var(--line);
@@ -157,21 +183,22 @@
     #status.err { border-color: rgba(240, 113, 120, 0.45); color: var(--err); }
     #status.info { color: var(--ink); }
     #status .meta { color: var(--muted); font-size: 0.88rem; margin-top: 8px; white-space: pre-wrap; }
-    #status .bar {
-      margin-top: 12px;
+    .bar {
+      margin-top: 10px;
       height: 10px;
       border-radius: 999px;
       background: rgba(255,255,255,0.08);
       overflow: hidden;
     }
-    #status .bar > i {
+    .bar > i {
       display: block;
       height: 100%;
       width: 0%;
       background: linear-gradient(90deg, var(--accent), #7ec8ff);
       transition: width 0.35s ease;
     }
-    #status .pct {
+    .bar.ok > i { background: linear-gradient(90deg, #3bbf8c, var(--ok)); }
+    .pct {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
@@ -179,7 +206,64 @@
       margin-top: 4px;
       font-weight: 600;
     }
-    #status a { color: var(--accent); }
+    .jobs { display: flex; flex-direction: column; gap: 12px; }
+    .job {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(0,0,0,0.18);
+      transition: border-color 0.15s;
+    }
+    .job.active { border-color: rgba(61, 156, 240, 0.55); box-shadow: 0 0 0 1px rgba(61,156,240,0.15); }
+    .job.running { border-color: rgba(232, 168, 124, 0.35); }
+    .job.ready { border-color: rgba(93, 204, 160, 0.35); }
+    .job.failed { border-color: rgba(240, 113, 120, 0.4); }
+    .job-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px 12px;
+      align-items: center;
+    }
+    .job-id { font-weight: 700; font-size: 0.95rem; word-break: break-all; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .badge.run { color: var(--accent2); border-color: rgba(232,168,124,0.35); }
+    .badge.run::before { background: var(--accent2); box-shadow: 0 0 8px rgba(232,168,124,0.7); animation: pulse 1.4s infinite; }
+    .badge.ok { color: var(--ok); border-color: rgba(93,204,160,0.35); }
+    .badge.ok::before { background: var(--ok); }
+    .badge.err { color: var(--err); border-color: rgba(240,113,120,0.4); }
+    .badge.err::before { background: var(--err); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .job-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+    .job-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
     a { color: var(--accent); }
     footer {
       margin-top: 28px;
@@ -192,7 +276,15 @@
 <body>
   <main>
     <h1>Slide Localize</h1>
-    <p class="lead">Drop a PDF or PPTX, pick a language, submit. No local install — this site talks to the hosted API.</p>
+    <p class="lead">Drop a PDF or PPTX, pick a language, submit. Watch live progress below — no local install.</p>
+
+    <div class="panel" id="livePanel">
+      <div class="panel-head">
+        <h2>Live jobs</h2>
+        <span class="hint" id="jobsHint">Refreshing…</span>
+      </div>
+      <div class="jobs" id="jobsList"><div class="empty">Loading jobs…</div></div>
+    </div>
 
     <div class="panel">
       <label class="field">File</label>
@@ -225,7 +317,7 @@
         </label>
       </div>
 
-      <details class="advanced" id="advancedBox" open>
+      <details class="advanced" id="advancedBox">
         <summary>Access (if API returns 401)</summary>
         <label class="field">Access token</label>
         <input type="text" id="accessToken" placeholder="Paste team token if required" autocomplete="off" />
@@ -254,8 +346,13 @@
     const accessToken = document.getElementById("accessToken");
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submit");
+    const jobsList = document.getElementById("jobsList");
+    const jobsHint = document.getElementById("jobsHint");
     let selectedFile = null;
     let pollTimer = null;
+    let jobsTimer = null;
+    let watchedRunId = null;
+    let jobsCache = [];
 
     function defaultApiBase() {
       if (location.protocol === "http:" || location.protocol === "https:") {
@@ -263,16 +360,21 @@
       }
       return "http://127.0.0.1:8787";
     }
+    function currentBase() {
+      return (apiBase.value || "").trim().replace(/\/$/, "") || defaultApiBase();
+    }
     apiBase.value = localStorage.getItem(LS_KEY) || defaultApiBase();
     accessToken.value = localStorage.getItem(LS_TOKEN) || "";
     apiBase.addEventListener("change", () => {
       localStorage.setItem(LS_KEY, apiBase.value.trim().replace(/\/$/, ""));
+      refreshJobsBoard();
     });
     accessToken.addEventListener("change", () => {
       localStorage.setItem(LS_TOKEN, accessToken.value.trim());
+      refreshJobsBoard();
     });
 
-    fetch((localStorage.getItem(LS_KEY) || defaultApiBase()) + "/health")
+    fetch(currentBase() + "/health")
       .then((r) => r.json())
       .then((h) => {
         window.__health = h;
@@ -312,16 +414,46 @@
       setStatusHtml(kind, "<div class='meta'>" + esc(text) + "</div>");
     }
 
-    function progressHtml(j, base) {
+    function isRunning(status) {
+      return ["queued", "exported", "generating"].includes(status);
+    }
+
+    function badgeClass(status) {
+      if (status === "assembled") return "ok";
+      if (status === "failed") return "err";
+      if (isRunning(status)) return "run";
+      return "";
+    }
+
+    function progressFromJob(j) {
+      const p = j.progress || {};
+      if (p.done != null) {
+        return {
+          done: Number(p.done || 0),
+          total: Number(p.total || j.page_count || 0),
+          pct: Number(p.pct || 0),
+          label: p.label || "?",
+        };
+      }
       const cp = j.checkpoint || {};
       const done = Number(cp.out_count || 0);
       const total = Number(j.page_count || cp.src_count || 0) || 0;
-      const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+      return {
+        done: done,
+        total: total,
+        pct: total ? Math.min(100, Math.round((done / total) * 100)) : 0,
+        label: total ? done + "/" + total : done + "/?",
+      };
+    }
+
+    function progressHtml(j, base) {
+      const prog = progressFromJob(j);
+      const cp = j.checkpoint || {};
       const missing = Array.isArray(cp.missing) ? cp.missing : [];
       const next = cp.next_page ? ("p" + String(cp.next_page).padStart(2, "0")) : "—";
       const batchHint = missing.length
         ? "Next up: " + missing.slice(0, Number(j.batch_size || 5)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
-        : "All source pages present on server.";
+        : (prog.total && prog.done >= prog.total ? "All pages on server." : "");
       const wh = j.webhook_error
         ? "Webhook error (" + (j.webhook_status || "?") + "): " + j.webhook_error
         : j.webhook_status
@@ -332,17 +464,79 @@
       setStatusHtml(
         kind,
         "<div class='pct'><span>" + esc(j.run_id) + " · " + esc(j.status) + "</span><span>" +
-          done + " / " + (total || "?") + " pages (" + pct + "%)</span></div>" +
-        "<div class='bar' aria-hidden='true'><i style='width:" + pct + "%'></i></div>" +
-        "<div class='meta'>" + esc(j.message || "") + "\n" +
-          esc(batchHint) + " · next " + esc(next) +
+          esc(prog.label) + " pages (" + prog.pct + "%)</span></div>" +
+        "<div class='bar" + (j.status === "assembled" ? " ok" : "") + "' aria-hidden='true'><i style='width:" + prog.pct + "%'></i></div>" +
+        "<div class='meta'>" + esc(j.message || "") +
+          (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
           (wh ? "\n" + esc(wh) : "") +
           "\nUpdated " + esc(j.updated_at || "") +
           (j.status === "assembled"
             ? "\n<a href='" + esc(dl) + "'>Download PDF</a>"
-            : "\nLive polling every 3s… <a href='" + esc(dl) + "'>download link</a>") +
+            : "\nWatching live… <a href='" + esc(dl) + "'>download link</a>") +
         "</div>"
       );
+    }
+
+    function renderJobsBoard(jobs, base) {
+      jobsCache = jobs || [];
+      const running = jobsCache.filter((j) => isRunning(j.status));
+      const recent = jobsCache.slice(0, 12);
+      jobsHint.textContent = running.length
+        ? running.length + " running · auto-refresh 3s"
+        : "No active runs · auto-refresh 3s";
+      if (!recent.length) {
+        jobsList.innerHTML = "<div class='empty'>No jobs yet. Submit a PDF to start.</div>";
+        return;
+      }
+      jobsList.innerHTML = recent.map((j) => {
+        const prog = progressFromJob(j);
+        const active = j.run_id === watchedRunId;
+        const stateClass = j.status === "assembled" ? "ready" : j.status === "failed" ? "failed" : isRunning(j.status) ? "running" : "";
+        const dl = base + "/v1/jobs/" + encodeURIComponent(j.run_id) + "/download";
+        const actions = [];
+        actions.push("<button type='button' class='ghost' data-watch='" + esc(j.run_id) + "'>Watch</button>");
+        if (j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length)) {
+          actions.push("<a class='ghost' style='display:inline-flex;align-items:center;text-decoration:none' href='" + esc(dl) + "'>Download</a>");
+        }
+        return (
+          "<div class='job " + stateClass + (active ? " active" : "") + "'>" +
+            "<div class='job-top'>" +
+              "<div class='job-id'>" + esc(j.run_id) + "</div>" +
+              "<span class='badge " + badgeClass(j.status) + "'>" + esc(j.status || "?") + "</span>" +
+            "</div>" +
+            "<div class='pct'><span>" + esc((j.target_lang || "").toUpperCase()) +
+              (j.batch_size ? " · batch " + esc(j.batch_size) : "") +
+              "</span><span>" + esc(prog.label) + " (" + prog.pct + "%)</span></div>" +
+            "<div class='bar" + (j.status === "assembled" ? " ok" : "") + "'><i style='width:" + prog.pct + "%'></i></div>" +
+            "<div class='job-meta'>" + esc(j.message || "") +
+              (j.updated_at ? "\nUpdated " + esc(j.updated_at) : "") +
+            "</div>" +
+            "<div class='job-actions'>" + actions.join("") + "</div>" +
+          "</div>"
+        );
+      }).join("");
+      jobsList.querySelectorAll("[data-watch]").forEach((btn) => {
+        btn.addEventListener("click", () => startPoll(base, btn.getAttribute("data-watch")));
+      });
+    }
+
+    async function refreshJobsBoard() {
+      const base = currentBase();
+      try {
+        const r = await fetch(base + "/v1/jobs", { headers: authHeaders() });
+        if (!r.ok) {
+          jobsHint.textContent = "Could not load jobs (" + r.status + ")";
+          return;
+        }
+        const data = await r.json();
+        renderJobsBoard(data.jobs || [], base);
+        if (watchedRunId) {
+          const watched = (data.jobs || []).find((j) => j.run_id === watchedRunId);
+          if (watched) progressHtml(watched, base);
+        }
+      } catch (e) {
+        jobsHint.textContent = "Jobs board offline";
+      }
     }
 
     function setFile(f) {
@@ -396,23 +590,30 @@
 
     function startPoll(base, runId) {
       stopPoll();
+      watchedRunId = runId;
       localStorage.setItem(LS_JOB, JSON.stringify({ base: base, runId: runId }));
       refreshJob(base, runId).catch(() => {});
+      refreshJobsBoard();
       pollTimer = setInterval(() => {
         refreshJob(base, runId).catch(() => {});
       }, 3000);
+      document.getElementById("livePanel").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     try {
       const saved = JSON.parse(localStorage.getItem(LS_JOB) || "null");
       if (saved && saved.runId && saved.base) {
         apiBase.value = saved.base;
+        watchedRunId = saved.runId;
         startPoll(saved.base, saved.runId);
       }
     } catch (_) {}
 
+    refreshJobsBoard();
+    jobsTimer = setInterval(refreshJobsBoard, 3000);
+
     submitBtn.addEventListener("click", async () => {
-      const base = (apiBase.value || "").trim().replace(/\/$/, "");
+      const base = currentBase();
       localStorage.setItem(LS_KEY, base);
       if (!selectedFile) {
         setStatus("err", "Please choose a PDF or PPTX first.");
@@ -449,6 +650,7 @@
         }
         progressHtml(body, base);
         startPoll(base, body.run_id);
+        refreshJobsBoard();
       } catch (e) {
         setStatus(
           "err",

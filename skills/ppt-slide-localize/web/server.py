@@ -161,6 +161,55 @@ def try_export(run_dir: Path, source: Path) -> int:
     return n
 
 
+def try_assemble(run_dir: Path, job: dict) -> Path:
+    """Assemble pages_out into output/<run_id>_<lang>.pdf on the server."""
+    script = SCRIPTS / "assemble_pdf.py"
+    if not script.exists():
+        raise RuntimeError("assemble_pdf.py missing")
+    lang = (job.get("target_lang") or "en").strip().lower()
+    pages = run_dir / "pages_out"
+    src = run_dir / "pages_src"
+    out_dir = run_dir / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{run_dir.name}_{lang}.pdf"
+    cmd = [
+        sys.executable,
+        str(script),
+        "--pages-dir",
+        str(pages),
+        "--out",
+        str(out),
+        "--target-lang",
+        lang,
+    ]
+    if src.exists() and any(src.glob("p*.png")):
+        cmd.extend(["--match-src-dir", str(src)])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0 or not out.is_file():
+        raise RuntimeError(proc.stderr or proc.stdout or "assemble_pdf failed")
+    return out
+
+
+def finalize_if_complete(run_dir: Path, job: dict, cp: dict | None = None) -> dict:
+    """If all pages exist, assemble PDF on the server and mark assembled."""
+    cp = cp or checkpoint_dict(run_dir)
+    if not cp.get("complete"):
+        return cp
+    try:
+        out = try_assemble(run_dir, job)
+        job["status"] = "assembled"
+        job["message"] = f"Localized PDF ready ({cp.get('progress')})."
+        job["output_pdf"] = str(out.relative_to(run_dir))
+        job["error"] = None
+        write_job(run_dir, job)
+    except Exception as e:
+        job["status"] = "generating"
+        job["message"] = f"All pages present; assemble failed: {e}"
+        job["error"] = str(e)
+        write_job(run_dir, job)
+    return cp
+
+
 def build_webhook_payload(job: dict, event: str = "job.created") -> dict:
     base = PUBLIC_BASE_URL or ""
     run_id = job.get("run_id")
@@ -378,12 +427,29 @@ def list_jobs(_: None = Depends(require_access)) -> dict:
     RUNS.mkdir(parents=True, exist_ok=True)
     items = []
     for d in sorted(RUNS.iterdir(), reverse=True):
-        if d.is_dir() and (d / "job.json").exists():
-            try:
-                items.append(read_job(d))
-            except Exception:
-                continue
-    return {"jobs": items[:50]}
+        if not (d.is_dir() and (d / "job.json").exists()):
+            continue
+        try:
+            job = read_job(d)
+        except Exception:
+            continue
+        out = d / "pages_out"
+        done = len(list(out.glob("p*.png"))) if out.exists() else 0
+        total = int(job.get("page_count") or 0)
+        out_pdfs = sorted(p.name for p in (d / "output").glob("*.pdf")) if (d / "output").exists() else []
+        if total and done >= total and out_pdfs and job.get("status") not in {"assembled", "failed"}:
+            job["status"] = "assembled"
+            job["message"] = "Localized PDF ready."
+            write_job(d, job)
+        job["progress"] = {
+            "done": done,
+            "total": total,
+            "label": f"{done}/{total}" if total else f"{done}/?",
+            "pct": min(100, round(100 * done / total)) if total else 0,
+        }
+        job["output_pdfs"] = out_pdfs
+        items.append(job)
+    return {"jobs": items[:50], "time": utc_now()}
 
 
 @app.get("/v1/jobs/{run_id}")
@@ -495,32 +561,25 @@ async def upload_pages(
             else f"Received {len(saved)} page(s). Progress {cp.get('progress')}."
         )
         write_job(run_dir, job)
-    elif saved and cp.get("complete") and webhook_ready():
-        notify_cursor_webhook(job, event="job.assemble")
-        write_job(run_dir, job)
-        continued = True
-        job["message"] = f"All pages uploaded ({cp.get('progress')}). Assemble webhook fired."
-        write_job(run_dir, job)
+    elif saved and cp.get("complete"):
+        finalize_if_complete(run_dir, job, cp)
+        continued = job.get("status") == "assembled"
     return {
         "saved": saved,
         "checkpoint": cp,
         "continued": continued,
-        **{k: job[k] for k in ("run_id", "status", "message", "webhook_status", "webhook_error")},
+        **{k: job[k] for k in ("run_id", "status", "message", "webhook_status", "webhook_error") if k in job},
     }
 
 
 @app.post("/v1/jobs/{run_id}/continue")
 def continue_job(run_id: str, _: None = Depends(require_access)) -> dict:
-    """Re-fire webhook for the next batch when pages remain."""
+    """Re-fire webhook for the next batch when pages remain; assemble when complete."""
     run_dir = RUNS / run_id
     job = read_job(run_dir)
     cp = checkpoint_dict(run_dir)
     if cp.get("complete"):
-        job["status"] = "generating"
-        job["message"] = "All pages present locally on server; assemble PDF and POST /result."
-        write_job(run_dir, job)
-        notify_cursor_webhook(job, event="job.assemble")
-        write_job(run_dir, job)
+        finalize_if_complete(run_dir, job, cp)
         return {**job, "checkpoint": cp, "continued": False, "reason": "complete"}
     job["status"] = "generating"
     job["message"] = (
@@ -533,6 +592,17 @@ def continue_job(run_id: str, _: None = Depends(require_access)) -> dict:
     notify_cursor_webhook(job, event="job.batch")
     write_job(run_dir, job)
     return {**job, "checkpoint": cp, "continued": True}
+
+
+@app.post("/v1/jobs/{run_id}/assemble")
+def assemble_job(run_id: str, _: None = Depends(require_access)) -> dict:
+    """Force server-side PDF assemble when all pages are present."""
+    run_dir = RUNS / run_id
+    job = read_job(run_dir)
+    cp = finalize_if_complete(run_dir, job)
+    if job.get("status") != "assembled":
+        raise HTTPException(409, detail={**job, "checkpoint": cp})
+    return {**job, "checkpoint": cp}
 
 
 @app.post("/v1/jobs/{run_id}/result")
