@@ -69,7 +69,7 @@ def webhook_ready() -> bool:
     return bool(CURSOR_WEBHOOK_URL and webhook_authorization_header())
 
 
-app = FastAPI(title="PPT Slide Localize API", version="1.3.0")
+app = FastAPI(title="PPT Slide Localize API", version="1.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -482,7 +482,31 @@ async def upload_pages(
     cp = checkpoint_dict(run_dir)
     job["message"] = f"Received {len(saved)} page(s). Progress {cp.get('progress')}."
     write_job(run_dir, job)
-    return {"saved": saved, "checkpoint": cp, **{k: job[k] for k in ("run_id", "status", "message")}}
+    continued = False
+    # Keep large decks moving without waiting for the agent to remember /continue.
+    if saved and webhook_ready() and not cp.get("complete"):
+        notify_cursor_webhook(job, event="job.batch")
+        write_job(run_dir, job)
+        continued = True
+        job["message"] = (
+            f"Received {len(saved)} page(s). Progress {cp.get('progress')}. "
+            f"Next batch webhook fired (next p{cp.get('next_page'):02d})."
+            if cp.get("next_page")
+            else f"Received {len(saved)} page(s). Progress {cp.get('progress')}."
+        )
+        write_job(run_dir, job)
+    elif saved and cp.get("complete") and webhook_ready():
+        notify_cursor_webhook(job, event="job.assemble")
+        write_job(run_dir, job)
+        continued = True
+        job["message"] = f"All pages uploaded ({cp.get('progress')}). Assemble webhook fired."
+        write_job(run_dir, job)
+    return {
+        "saved": saved,
+        "checkpoint": cp,
+        "continued": continued,
+        **{k: job[k] for k in ("run_id", "status", "message", "webhook_status", "webhook_error")},
+    }
 
 
 @app.post("/v1/jobs/{run_id}/continue")

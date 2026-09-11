@@ -150,13 +150,36 @@
       border: 1px solid var(--line);
       font-size: 0.95rem;
       line-height: 1.45;
-      white-space: pre-wrap;
       display: none;
     }
     #status.show { display: block; }
     #status.ok { border-color: rgba(93, 204, 160, 0.4); color: var(--ok); }
     #status.err { border-color: rgba(240, 113, 120, 0.45); color: var(--err); }
     #status.info { color: var(--ink); }
+    #status .meta { color: var(--muted); font-size: 0.88rem; margin-top: 8px; white-space: pre-wrap; }
+    #status .bar {
+      margin-top: 12px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    #status .bar > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #7ec8ff);
+      transition: width 0.35s ease;
+    }
+    #status .pct {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    #status a { color: var(--accent); }
     a { color: var(--accent); }
     footer {
       margin-top: 28px;
@@ -212,7 +235,7 @@
       </details>
 
       <button type="button" id="submit">Submit job</button>
-      <div id="status" role="status"></div>
+      <div id="status" role="status" aria-live="polite"></div>
     </div>
 
     <footer>
@@ -223,6 +246,7 @@
   <script>
     const LS_KEY = "ppt_slide_localize_api_base";
     const LS_TOKEN = "ppt_slide_localize_token";
+    const LS_JOB = "ppt_slide_localize_active_job";
     const drop = document.getElementById("drop");
     const fileInput = document.getElementById("file");
     const fileLabel = document.getElementById("fileLabel");
@@ -231,6 +255,7 @@
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submit");
     let selectedFile = null;
+    let pollTimer = null;
 
     function defaultApiBase() {
       if (location.protocol === "http:" || location.protocol === "https:") {
@@ -247,7 +272,6 @@
       localStorage.setItem(LS_TOKEN, accessToken.value.trim());
     });
 
-    // Show whether hosted webhook is wired
     fetch((localStorage.getItem(LS_KEY) || defaultApiBase()) + "/health")
       .then((r) => r.json())
       .then((h) => {
@@ -271,9 +295,54 @@
       return t ? { "X-Access-Token": t } : {};
     }
 
-    function setStatus(kind, text) {
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function setStatusHtml(kind, html) {
       statusEl.className = "show " + kind;
-      statusEl.textContent = text;
+      statusEl.innerHTML = html;
+    }
+
+    function setStatus(kind, text) {
+      setStatusHtml(kind, "<div class='meta'>" + esc(text) + "</div>");
+    }
+
+    function progressHtml(j, base) {
+      const cp = j.checkpoint || {};
+      const done = Number(cp.out_count || 0);
+      const total = Number(j.page_count || cp.src_count || 0) || 0;
+      const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+      const missing = Array.isArray(cp.missing) ? cp.missing : [];
+      const next = cp.next_page ? ("p" + String(cp.next_page).padStart(2, "0")) : "—";
+      const batchHint = missing.length
+        ? "Next up: " + missing.slice(0, Number(j.batch_size || 5)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
+        : "All source pages present on server.";
+      const wh = j.webhook_error
+        ? "Webhook error (" + (j.webhook_status || "?") + "): " + j.webhook_error
+        : j.webhook_status
+          ? "Webhook " + j.webhook_status + (j.last_webhook_event ? " · " + j.last_webhook_event : "")
+          : "";
+      const dl = base + "/v1/jobs/" + encodeURIComponent(j.run_id) + "/download";
+      const kind = j.status === "assembled" ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
+      setStatusHtml(
+        kind,
+        "<div class='pct'><span>" + esc(j.run_id) + " · " + esc(j.status) + "</span><span>" +
+          done + " / " + (total || "?") + " pages (" + pct + "%)</span></div>" +
+        "<div class='bar' aria-hidden='true'><i style='width:" + pct + "%'></i></div>" +
+        "<div class='meta'>" + esc(j.message || "") + "\n" +
+          esc(batchHint) + " · next " + esc(next) +
+          (wh ? "\n" + esc(wh) : "") +
+          "\nUpdated " + esc(j.updated_at || "") +
+          (j.status === "assembled"
+            ? "\n<a href='" + esc(dl) + "'>Download PDF</a>"
+            : "\nLive polling every 3s… <a href='" + esc(dl) + "'>download link</a>") +
+        "</div>"
+      );
     }
 
     function setFile(f) {
@@ -304,51 +373,43 @@
       if (f) setFile(f);
     });
 
-    async function pollJob(base, runId, tries = 40) {
-      for (let i = 0; i < tries; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const r = await fetch(base + "/v1/jobs/" + encodeURIComponent(runId), {
-            headers: authHeaders(),
-          });
-          if (!r.ok) continue;
-          const j = await r.json();
-          const prog = (j.checkpoint && j.checkpoint.progress) || "?";
-          const wh =
-            j.webhook_error
-              ? "\n\nWebhook error (" + (j.webhook_status || "?") + "): " + j.webhook_error
-              : j.webhook_status
-                ? "\n\nWebhook OK (" + j.webhook_status + ")"
-                : "";
-          const ready =
-            window.__health && window.__health.webhook_configured
-              ? "\nAutomation should be processing this job."
-              : window.__health && window.__health.webhook_url_configured && !window.__health.webhook_auth_configured
-                ? "\n\nBlocked: set CURSOR_WEBHOOK_AUTH on the server (Generate auth header in Cursor Automations)."
-                : "\n\nNote: Automation webhook not fully configured on server yet.";
-          setStatus(
-            j.webhook_error ? "err" : "info",
-            "Job " + runId + " · status=" + j.status + " · progress=" + prog +
-              (j.message ? "\n" + j.message : "") +
-              wh +
-              ready +
-              "\nDownload when ready:\n" +
-              base + "/v1/jobs/" + runId + "/download"
-          );
-          if (j.status === "assembled") {
-            setStatus(
-              "ok",
-              "Ready: " + runId + "\nDownload: " + base + "/v1/jobs/" + runId + "/download"
-            );
-            return;
-          }
-          if (j.status === "failed") {
-            setStatus("err", "Job failed: " + (j.error || j.message || "unknown"));
-            return;
-          }
-        } catch (_) { /* keep polling */ }
+    function stopPoll() {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
     }
+
+    async function refreshJob(base, runId) {
+      const r = await fetch(base + "/v1/jobs/" + encodeURIComponent(runId), {
+        headers: authHeaders(),
+      });
+      if (!r.ok) return null;
+      const j = await r.json();
+      progressHtml(j, base);
+      if (j.status === "assembled" || j.status === "failed") {
+        stopPoll();
+        if (j.status === "assembled") localStorage.removeItem(LS_JOB);
+      }
+      return j;
+    }
+
+    function startPoll(base, runId) {
+      stopPoll();
+      localStorage.setItem(LS_JOB, JSON.stringify({ base: base, runId: runId }));
+      refreshJob(base, runId).catch(() => {});
+      pollTimer = setInterval(() => {
+        refreshJob(base, runId).catch(() => {});
+      }, 3000);
+    }
+
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_JOB) || "null");
+      if (saved && saved.runId && saved.base) {
+        apiBase.value = saved.base;
+        startPoll(saved.base, saved.runId);
+      }
+    } catch (_) {}
 
     submitBtn.addEventListener("click", async () => {
       const base = (apiBase.value || "").trim().replace(/\/$/, "");
@@ -386,15 +447,8 @@
           );
           return;
         }
-        const runId = body.run_id;
-        setStatus(
-          "ok",
-          "Created job " + runId + " · lang=" + body.target_lang +
-            " · status=" + body.status +
-            "\n" + (body.message || "") +
-            "\n\nDownload when ready: " + base + "/v1/jobs/" + runId + "/download"
-        );
-        pollJob(base, runId);
+        progressHtml(body, base);
+        startPoll(base, body.run_id);
       } catch (e) {
         setStatus(
           "err",
