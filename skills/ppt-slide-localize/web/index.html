@@ -399,10 +399,12 @@
         </label>
         <label class="toggle" title="Pages processed per Automation run">
           Batch size
-          <select id="batchSize">
-            <option value="5" selected>5</option>
-            <option value="8">8</option>
-            <option value="10">10</option>
+          <select id="batchSize" title="Pages per Automation turn. 8–10 recommended.">
+            <option value="5">5 · safer</option>
+            <option value="8" selected>8 · balanced</option>
+            <option value="10">10 · faster</option>
+            <option value="12">12 · aggressive</option>
+            <option value="15">15 · max</option>
           </select>
         </label>
       </div>
@@ -554,13 +556,20 @@
       };
     }
 
+    function formatEta(j) {
+      const p = j.progress || {};
+      if (j.status === "assembled") return "Complete";
+      if (p.eta_label) return "ETA " + p.eta_label;
+      return "";
+    }
+
     function progressHtml(j, base) {
       const prog = progressFromJob(j);
       const cp = j.checkpoint || {};
       const missing = Array.isArray(cp.missing) ? cp.missing : [];
       const next = cp.next_page ? ("p" + String(cp.next_page).padStart(2, "0")) : "—";
       const batchHint = missing.length
-        ? "Next: " + missing.slice(0, Number(j.batch_size || 5)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
+        ? "Next: " + missing.slice(0, Number(j.batch_size || 8)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
         : (prog.total && prog.done >= prog.total ? "All pages ready." : "");
       const wh = j.webhook_error
         ? "Automation error (" + (j.webhook_status || "?") + "): " + j.webhook_error
@@ -568,13 +577,17 @@
       const ready = j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length);
       const kind = ready ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
       const fname = (j.output_pdfs && j.output_pdfs[0]) || ((j.output_pdf || "").split("/").pop()) || (j.run_id + ".pdf");
+      const eta = formatEta(j);
       setStatusHtml(
         kind,
         "<div class='pct'><span>" + esc(j.run_id) + " · " + esc(j.status) + "</span><span>" +
-          esc(prog.label) + " pages (" + prog.pct + "%)</span></div>" +
+          esc(prog.label) + " pages (" + prog.pct + "%)" +
+          (eta ? " · " + esc(eta) : "") +
+          "</span></div>" +
         "<div class='bar" + (ready ? " ok" : "") + "' aria-hidden='true'><i style='width:" + prog.pct + "%'></i></div>" +
         "<div class='meta'>" + esc(j.message || "") +
           (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
+          (eta && !ready ? "\nEstimated finish: " + esc(eta) + (j.progress && j.progress.eta_at ? " (" + esc(String(j.progress.eta_at).replace("T", " ").slice(0, 16)) + " UTC)" : "") : "") +
           (wh ? "\n" + esc(wh) : "") +
           "\nUpdated " + esc(j.updated_at || "") +
         "</div>" +
@@ -654,7 +667,9 @@
             "</div>" +
             "<div class='pct'><span>" + esc((j.target_lang || "").toUpperCase()) +
               (j.batch_size ? " · batch " + esc(j.batch_size) : "") +
-              "</span><span>" + esc(prog.label) + " (" + prog.pct + "%)</span></div>" +
+              "</span><span>" + esc(prog.label) + " (" + prog.pct + "%)" +
+              (formatEta(j) ? " · " + esc(formatEta(j)) : "") +
+              "</span></div>" +
             "<div class='bar" + (ready ? " ok" : "") + "'><i style='width:" + prog.pct + "%'></i></div>" +
             "<div class='job-meta'>" + esc(j.message || "") +
               (j.updated_at ? "\nUpdated " + esc(j.updated_at) : "") +
@@ -825,7 +840,7 @@
       fd.append("target_lang", lang);
       fd.append("remove_watermarks", document.getElementById("wm").checked ? "true" : "false");
       fd.append("auto_export", "true");
-      fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "5");
+      fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "8");
       fd.append("session_token", sessionToken());
 
       submitBtn.disabled = true;

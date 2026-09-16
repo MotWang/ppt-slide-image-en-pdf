@@ -124,7 +124,7 @@ python3 workflows/ppt-slide-image-en-pdf/scripts/run_checkpoint.py \
 **Speed / scale rules:**
 
 - Work only under `runs/<run_id>/` (or Fly job workspace via website APIs).
-- **Batch size** default **5** (from `job.json` → `batch_size`, max 10). Parallel `GenerateImage` within one batch only.
+- **Batch size** default **8** (from `job.json` → `batch_size`, max **15**). Parallel `GenerateImage` within one batch only. Prefer **8–10** for speed vs timeout; **15** is the hard ceiling for one Automation turn.
 - Supported decks: up to **~100 pages** (60–70 page BPs are normal). Never try to finish 70 pages in one Automation turn if time is tight — finish one batch, persist pages, continue.
 - Long decks: do **not** full-`Read` every page first; use `reference_image_paths` + language prompt.
 - Skip pages that already exist in `pages_out/`.

@@ -53,7 +53,10 @@ PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 MAX_PAGES = int(os.environ.get("MAX_PAGES", "100"))
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "150"))
-DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "5"))
+DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "8"))
+MAX_BATCH_SIZE = int(os.environ.get("MAX_BATCH_SIZE", "15"))
+# Rough wall-clock seconds per page for ETA before measured rate exists.
+ETA_SEC_PER_PAGE = float(os.environ.get("ETA_SEC_PER_PAGE", "70"))
 JOB_TTL_HOURS = int(os.environ.get("JOB_TTL_HOURS", "6"))
 LEAVE_GRACE_SEC = int(os.environ.get("LEAVE_GRACE_SEC", "90"))
 
@@ -223,12 +226,60 @@ def job_progress(run_dir: Path, job: dict) -> dict:
     done = len(list(out.glob("p*.png"))) if out.exists() else 0
     total = int(job.get("page_count") or 0)
     out_pdfs = sorted(p.name for p in (run_dir / "output").glob("*.pdf")) if (run_dir / "output").exists() else []
+    bsz = max(1, int(job.get("batch_size") or DEFAULT_BATCH_SIZE))
+    eta = estimate_eta(job, done, total, bsz)
     return {
         "done": done,
         "total": total,
         "label": f"{done}/{total}" if total else f"{done}/?",
         "pct": min(100, round(100 * done / total)) if total else 0,
         "output_pdfs": out_pdfs,
+        "eta_seconds": eta.get("seconds"),
+        "eta_label": eta.get("label"),
+        "eta_at": eta.get("at"),
+        "sec_per_page": eta.get("sec_per_page"),
+    }
+
+
+def estimate_eta(job: dict, done: int, total: int, batch_size: int) -> dict:
+    """Estimate remaining time from measured rate, else heuristic by batch size."""
+    if total <= 0:
+        return {"seconds": None, "label": None, "at": None, "sec_per_page": None}
+    if done >= total:
+        return {"seconds": 0, "label": "Done", "at": utc_now(), "sec_per_page": None}
+
+    now = datetime.now(timezone.utc)
+    started = (
+        parse_iso(job.get("progress_started_at"))
+        or parse_iso(job.get("generating_started_at"))
+        or parse_iso(job.get("created_at"))
+    )
+    sec_per_page = None
+    if done > 0 and started:
+        elapsed = max((now - started).total_seconds(), 1.0)
+        sec_per_page = elapsed / done
+        remain = int(max(0, (total - done) * sec_per_page))
+    else:
+        # Within a batch, pages can run with limited parallelism; across batches they are sequential.
+        # Effective wall time ≈ sec_per_page * pages * (0.45 + 0.55/min(batch,8))
+        parallel_factor = 0.45 + 0.55 / min(max(batch_size, 1), 8)
+        sec_per_page = ETA_SEC_PER_PAGE * parallel_factor
+        remain = int(max(0, (total - done) * sec_per_page))
+
+    at = (now + timedelta(seconds=remain)).isoformat()
+    if remain < 60:
+        label = f"~{remain}s"
+    elif remain < 3600:
+        mins = max(1, round(remain / 60))
+        label = f"~{mins} min"
+    else:
+        hrs = remain / 3600
+        label = f"~{hrs:.1f} h"
+    return {
+        "seconds": remain,
+        "label": label,
+        "at": at,
+        "sec_per_page": round(sec_per_page, 1) if sec_per_page else None,
     }
 
 
@@ -435,6 +486,8 @@ def notify_cursor_webhook(job: dict, event: str = "job.created") -> None:
             job["last_webhook_event"] = event
             if 200 <= resp.status < 300 and job.get("status") in {"exported", "queued"}:
                 job["status"] = "generating"
+                if not job.get("generating_started_at"):
+                    job["generating_started_at"] = utc_now()
                 job["message"] = (
                     f"Automation triggered ({event}). Progress "
                     f"{payload.get('progress') or '?'}; batch={payload.get('batch_pages')}"
@@ -473,6 +526,7 @@ def health() -> dict:
         "max_pages": MAX_PAGES,
         "max_upload_mb": MAX_UPLOAD_MB,
         "default_batch_size": DEFAULT_BATCH_SIZE,
+        "max_batch_size": MAX_BATCH_SIZE,
         "job_ttl_hours": JOB_TTL_HOURS,
         "leave_grace_sec": LEAVE_GRACE_SEC,
     }
@@ -559,7 +613,7 @@ async def create_job(
         bsz = int(str(batch_size).strip() or DEFAULT_BATCH_SIZE)
     except ValueError:
         bsz = DEFAULT_BATCH_SIZE
-    bsz = max(1, min(bsz, 10))
+    bsz = max(1, min(bsz, MAX_BATCH_SIZE))
 
     if not file.filename:
         raise HTTPException(400, "file required")
@@ -808,7 +862,11 @@ async def upload_pages(
         dest.write_bytes(data)
         saved.append(dest.name)
     job["status"] = "generating"
+    if not job.get("generating_started_at"):
+        job["generating_started_at"] = utc_now()
     cp = checkpoint_dict(run_dir)
+    if int(cp.get("out_count") or 0) > 0 and not job.get("progress_started_at"):
+        job["progress_started_at"] = utc_now()
     job["message"] = f"Received {len(saved)} page(s). Progress {cp.get('progress')}."
     write_job(run_dir, job)
     continued = False
