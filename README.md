@@ -12,6 +12,8 @@ Image-first PPT/PDF localization: recreate each slide as a localized page image 
 
 Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live only in Fly/Render env vars — never commit them. Do not commit deck PDFs or `runs/` page images.
 
+**Privacy:** each browser tab gets a private session. Job list / download require that tab’s session token. Closing the tab schedules server-side file deletion (short grace so refresh can resume).
+
 ---
 
 ## Usage guide

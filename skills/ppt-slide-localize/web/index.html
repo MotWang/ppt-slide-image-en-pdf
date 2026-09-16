@@ -43,7 +43,13 @@
       margin: 0 0 8px;
       letter-spacing: -0.02em;
     }
-    .lead { color: var(--muted); margin: 0 0 32px; line-height: 1.5; }
+    .lead { color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+    .privacy {
+      color: var(--accent2);
+      font-size: 0.88rem;
+      margin: 0 0 28px;
+      line-height: 1.45;
+    }
     .panel {
       background: var(--card);
       border: 1px solid var(--line);
@@ -272,6 +278,7 @@
       color: var(--muted);
       font-size: 0.82rem;
       line-height: 1.4;
+      white-space: pre-wrap;
     }
     .job-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
@@ -288,13 +295,14 @@
   <main>
     <h1>Slide Localize</h1>
     <p class="lead">Drop a PDF or PPTX, pick a language, submit. Watch live progress below — no local install.</p>
+    <p class="privacy">Private to this browser tab: others cannot see your jobs or download your PDF. Closing / leaving this tab schedules file deletion.</p>
 
     <div class="panel" id="livePanel">
       <div class="panel-head">
-        <h2>Live jobs</h2>
+        <h2>Your jobs (this tab)</h2>
         <span class="hint" id="jobsHint">Refreshing…</span>
       </div>
-      <div class="jobs" id="jobsList"><div class="empty">Loading jobs…</div></div>
+      <div class="jobs" id="jobsList"><div class="empty">No jobs in this tab yet. Submit a PDF to start.</div></div>
     </div>
 
     <div class="panel">
@@ -343,13 +351,14 @@
 
     <footer>
       Hosted mode uses this same origin as the API. Local dev: <code>python3 web/server.py</code><br />
-      Skill: <code>ppt-slide-localize</code>
+      Skill: <code>ppt-slide-localize</code> · files are session-private
     </footer>
   </main>
   <script>
     const LS_KEY = "ppt_slide_localize_api_base";
     const LS_TOKEN = "ppt_slide_localize_token";
-    const LS_JOB = "ppt_slide_localize_active_job";
+    const SS_SESSION = "ppt_slide_localize_session";
+    const SS_JOB = "ppt_slide_localize_active_job";
     const drop = document.getElementById("drop");
     const fileInput = document.getElementById("file");
     const fileLabel = document.getElementById("fileLabel");
@@ -363,7 +372,7 @@
     let pollTimer = null;
     let jobsTimer = null;
     let watchedRunId = null;
-    let jobsCache = [];
+    let leaving = false;
 
     function defaultApiBase() {
       if (location.protocol === "http:" || location.protocol === "https:") {
@@ -374,6 +383,23 @@
     function currentBase() {
       return (apiBase.value || "").trim().replace(/\/$/, "") || defaultApiBase();
     }
+
+    function newSessionToken() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+      const a = new Uint8Array(24);
+      (window.crypto || window.msCrypto).getRandomValues(a);
+      return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function sessionToken() {
+      let t = sessionStorage.getItem(SS_SESSION);
+      if (!t || t.length < 16) {
+        t = newSessionToken();
+        sessionStorage.setItem(SS_SESSION, t);
+      }
+      return t;
+    }
+
     apiBase.value = localStorage.getItem(LS_KEY) || defaultApiBase();
     accessToken.value = localStorage.getItem(LS_TOKEN) || "";
     apiBase.addEventListener("change", () => {
@@ -385,28 +411,29 @@
       refreshJobsBoard();
     });
 
+    function authHeaders(extra) {
+      const h = Object.assign({ "X-Session-Token": sessionToken() }, extra || {});
+      const t = (accessToken.value || "").trim();
+      if (t) h["X-Access-Token"] = t;
+      return h;
+    }
+
     fetch(currentBase() + "/health")
       .then((r) => r.json())
       .then((h) => {
         window.__health = h;
         const hint = document.getElementById("authHint");
         if (!hint) return;
+        const priv = h.session_privacy ? "Session privacy on. " : "";
         if (h.webhook_configured) {
-          hint.textContent = "Automation webhook: ready (URL + auth).";
+          hint.textContent = priv + "Automation webhook: ready (URL + auth).";
         } else if (h.webhook_url_configured && !h.webhook_auth_configured) {
-          hint.textContent =
-            "Automation webhook URL is set, but CURSOR_WEBHOOK_AUTH is missing — jobs will not start until auth is configured.";
+          hint.textContent = priv + "Automation webhook URL set, but CURSOR_WEBHOOK_AUTH missing.";
         } else {
-          hint.textContent =
-            "Automation webhook: not set yet (jobs wait until Cursor Automation URL + auth are wired).";
+          hint.textContent = priv + "Automation webhook not fully configured yet.";
         }
       })
       .catch(() => {});
-
-    function authHeaders() {
-      const t = (accessToken.value || "").trim();
-      return t ? { "X-Access-Token": t } : {};
-    }
 
     function esc(s) {
       return String(s == null ? "" : s)
@@ -482,7 +509,7 @@
           (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
           (wh ? "\n" + esc(wh) : "") +
           "\nUpdated " + esc(j.updated_at || "") +
-          (ready ? "" : "\nWatching live…") +
+          (ready ? "\nDownload only works in this tab." : "\nWatching live (this tab only)…") +
         "</div>" +
         (ready
           ? "<button type='button' class='dl' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>"
@@ -531,14 +558,13 @@
     }
 
     function renderJobsBoard(jobs, base) {
-      jobsCache = jobs || [];
-      const running = jobsCache.filter((j) => isRunning(j.status));
-      const recent = jobsCache.slice(0, 12);
+      const running = (jobs || []).filter((j) => isRunning(j.status));
+      const recent = (jobs || []).slice(0, 12);
       jobsHint.textContent = running.length
-        ? running.length + " running · auto-refresh 3s"
-        : "No active runs · auto-refresh 3s";
+        ? running.length + " running · private · 3s"
+        : "Private to this tab · 3s";
       if (!recent.length) {
-        jobsList.innerHTML = "<div class='empty'>No jobs yet. Submit a PDF to start.</div>";
+        jobsList.innerHTML = "<div class='empty'>No jobs in this tab yet. Submit a PDF to start.</div>";
         return;
       }
       jobsList.innerHTML = recent.map((j) => {
@@ -552,6 +578,7 @@
         if (ready) {
           actions.push("<button type='button' class='dl sm' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>");
         }
+        actions.push("<button type='button' class='ghost' data-del='" + esc(j.run_id) + "'>Delete</button>");
         return (
           "<div class='job " + stateClass + (active ? " active" : "") + "'>" +
             "<div class='job-top'>" +
@@ -575,6 +602,53 @@
       jobsList.querySelectorAll("[data-dl]").forEach((btn) => {
         btn.addEventListener("click", () => triggerDownload(base, btn.getAttribute("data-dl"), btn.getAttribute("data-name"), btn));
       });
+      jobsList.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.addEventListener("click", () => deleteJob(base, btn.getAttribute("data-del")));
+      });
+    }
+
+    async function deleteJob(base, runId) {
+      if (!runId || !confirm("Delete this job and its files from the server?")) return;
+      await fetch(base + "/v1/jobs/" + encodeURIComponent(runId), {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (watchedRunId === runId) {
+        watchedRunId = null;
+        sessionStorage.removeItem(SS_JOB);
+        statusEl.className = "";
+        statusEl.innerHTML = "";
+      }
+      refreshJobsBoard();
+    }
+
+    async function sessionHello() {
+      const base = currentBase();
+      try {
+        await fetch(base + "/v1/session/hello", {
+          method: "POST",
+          headers: authHeaders(),
+        });
+      } catch (_) {}
+    }
+
+    function scheduleLeaveCleanup() {
+      if (leaving) return;
+      leaving = true;
+      const base = currentBase();
+      const body = "";
+      const url = base + "/v1/session/leave";
+      try {
+        if (navigator.sendBeacon) {
+          const blob = new Blob([body], { type: "text/plain" });
+          // sendBeacon cannot set custom headers reliably — use fetch keepalive
+        }
+        fetch(url, {
+          method: "POST",
+          headers: authHeaders(),
+          keepalive: true,
+        }).catch(() => {});
+      } catch (_) {}
     }
 
     async function refreshJobsBoard() {
@@ -590,6 +664,9 @@
         if (watchedRunId) {
           const watched = (data.jobs || []).find((j) => j.run_id === watchedRunId);
           if (watched) progressHtml(watched, base);
+          else if ((data.jobs || []).length === 0) {
+            watchedRunId = null;
+          }
         }
       } catch (e) {
         jobsHint.textContent = "Jobs board offline";
@@ -640,7 +717,7 @@
       progressHtml(j, base);
       if (j.status === "assembled" || j.status === "failed") {
         stopPoll();
-        if (j.status === "assembled") localStorage.removeItem(LS_JOB);
+        if (j.status === "assembled") sessionStorage.removeItem(SS_JOB);
       }
       return j;
     }
@@ -648,7 +725,7 @@
     function startPoll(base, runId) {
       stopPoll();
       watchedRunId = runId;
-      localStorage.setItem(LS_JOB, JSON.stringify({ base: base, runId: runId }));
+      sessionStorage.setItem(SS_JOB, JSON.stringify({ base: base, runId: runId }));
       refreshJob(base, runId).catch(() => {});
       refreshJobsBoard();
       pollTimer = setInterval(() => {
@@ -657,17 +734,22 @@
       document.getElementById("livePanel").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    try {
-      const saved = JSON.parse(localStorage.getItem(LS_JOB) || "null");
-      if (saved && saved.runId && saved.base) {
-        apiBase.value = saved.base;
-        watchedRunId = saved.runId;
-        startPoll(saved.base, saved.runId);
-      }
-    } catch (_) {}
-
-    refreshJobsBoard();
+    sessionToken();
+    sessionHello().then(() => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(SS_JOB) || "null");
+        if (saved && saved.runId && saved.base) {
+          apiBase.value = saved.base;
+          watchedRunId = saved.runId;
+          startPoll(saved.base, saved.runId);
+        }
+      } catch (_) {}
+      refreshJobsBoard();
+    });
     jobsTimer = setInterval(refreshJobsBoard, 3000);
+
+    window.addEventListener("pagehide", scheduleLeaveCleanup);
+    window.addEventListener("beforeunload", scheduleLeaveCleanup);
 
     submitBtn.addEventListener("click", async () => {
       const base = currentBase();
@@ -683,11 +765,13 @@
       fd.append("remove_watermarks", document.getElementById("wm").checked ? "true" : "false");
       fd.append("auto_export", "true");
       fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "5");
+      fd.append("session_token", sessionToken());
 
       submitBtn.disabled = true;
       setStatus("info", "Submitting to " + base + " …");
       try {
         localStorage.setItem(LS_TOKEN, (accessToken.value || "").trim());
+        await sessionHello();
         const res = await fetch(base + "/v1/jobs", {
           method: "POST",
           body: fd,
