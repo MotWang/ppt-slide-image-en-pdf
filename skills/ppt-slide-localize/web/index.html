@@ -3,95 +3,143 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PPT Slide Localize</title>
+  <title>Slide Localize · Samsung Ventures</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg0: #0f1419;
-      --bg1: #1a2332;
-      --ink: #e8eef6;
-      --muted: #9aabbd;
-      --accent: #3d9cf0;
-      --accent2: #e8a87c;
-      --line: rgba(232, 238, 246, 0.12);
-      --ok: #5dcca0;
-      --err: #f07178;
-      --card: rgba(255, 255, 255, 0.04);
+      --samsung-blue: #1428a0;
+      --samsung-blue-deep: #0d1c7a;
+      --sky: #2189ff;
+      --ink: #1a1a1a;
+      --muted: #5c6670;
+      --line: #e4e7ec;
+      --surface: #ffffff;
+      --bg: #f5f7fb;
+      --ok: #0a7a4b;
+      --err: #c62828;
+      --run: #c45c00;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "DM Sans", system-ui, sans-serif;
+      font-family: "Noto Sans", "Noto Sans KR", system-ui, sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(1200px 600px at 10% -10%, #243552 0%, transparent 55%),
-        radial-gradient(900px 500px at 100% 0%, #3a2a22 0%, transparent 50%),
-        linear-gradient(165deg, var(--bg0), var(--bg1));
+        linear-gradient(180deg, #eef2fb 0%, var(--bg) 42%, #f8f9fc 100%);
+    }
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--samsung-blue);
+      font-size: 0.95rem;
+      text-transform: uppercase;
+    }
+    .brand span { color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 8px; font-size: 0.82rem; }
+    .team-tag {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 500;
     }
     main {
       max-width: 760px;
       margin: 0 auto;
-      padding: 48px 20px 80px;
+      padding: 40px 20px 72px;
+    }
+    .hero {
+      margin-bottom: 28px;
+      animation: rise 0.55s ease both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
     }
     h1 {
-      font-family: "Instrument Serif", Georgia, serif;
-      font-weight: 400;
-      font-size: clamp(2.2rem, 5vw, 3rem);
-      margin: 0 0 8px;
-      letter-spacing: -0.02em;
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4.5vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      line-height: 1.15;
     }
-    .lead { color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
-    .privacy {
-      color: var(--accent2);
-      font-size: 0.88rem;
-      margin: 0 0 28px;
-      line-height: 1.45;
+    h1 em {
+      font-style: normal;
+      color: var(--samsung-blue);
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 36rem;
+      font-size: 1.02rem;
     }
     .panel {
-      background: var(--card);
+      background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 16px;
+      border-radius: 4px;
       padding: 24px;
-      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 28px rgba(20, 40, 160, 0.04);
+      animation: rise 0.65s ease both;
     }
-    .panel + .panel { margin-top: 18px; }
+    .panel + .panel { margin-top: 16px; animation-delay: 0.08s; }
     .panel-head {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 12px;
       margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
     }
     .panel-head h2 {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 700;
       letter-spacing: 0.02em;
+      color: var(--samsung-blue);
+      text-transform: uppercase;
     }
-    .panel-head .hint { color: var(--muted); font-size: 0.85rem; }
+    .panel-head .hint { color: var(--muted); font-size: 0.82rem; }
     label.field {
       display: block;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--muted);
       margin: 16px 0 8px;
+      font-weight: 600;
     }
     label.field:first-child { margin-top: 0; }
     .drop {
-      border: 1.5px dashed rgba(61, 156, 240, 0.45);
-      border-radius: 12px;
+      border: 1.5px dashed rgba(20, 40, 160, 0.28);
+      border-radius: 4px;
       padding: 36px 20px;
       text-align: center;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
-      background: rgba(61, 156, 240, 0.06);
+      background: rgba(20, 40, 160, 0.03);
     }
-    .drop.drag { border-color: var(--accent2); background: rgba(232, 168, 124, 0.08); }
-    .drop strong { display: block; margin-bottom: 6px; }
+    .drop:hover, .drop.drag {
+      border-color: var(--samsung-blue);
+      background: rgba(20, 40, 160, 0.06);
+    }
+    .drop strong { display: block; margin-bottom: 6px; color: var(--ink); }
     .drop span { color: var(--muted); font-size: 0.92rem; }
     input[type="file"] { display: none; }
     .langs {
@@ -101,6 +149,7 @@
     }
     @media (max-width: 520px) {
       .langs { grid-template-columns: repeat(2, 1fr); }
+      .topbar-inner { flex-direction: column; align-items: flex-start; }
     }
     .langs label {
       display: flex;
@@ -108,16 +157,18 @@
       justify-content: center;
       gap: 6px;
       padding: 12px 8px;
-      border-radius: 10px;
+      border-radius: 4px;
       border: 1px solid var(--line);
       cursor: pointer;
       font-weight: 600;
       font-size: 0.95rem;
+      background: #fff;
     }
-    .langs input { accent-color: var(--accent); }
+    .langs input { accent-color: var(--samsung-blue); }
     .langs label:has(input:checked) {
-      border-color: var(--accent);
-      background: rgba(61, 156, 240, 0.15);
+      border-color: var(--samsung-blue);
+      background: rgba(20, 40, 160, 0.06);
+      color: var(--samsung-blue);
     }
     .row {
       display: flex;
@@ -133,43 +184,49 @@
       color: var(--muted);
       font-size: 0.95rem;
     }
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 10px 12px;
-      border-radius: 8px;
+      border-radius: 4px;
       border: 1px solid var(--line);
-      background: rgba(0, 0, 0, 0.25);
+      background: #fff;
       color: var(--ink);
       font: inherit;
+    }
+    select {
+      width: auto;
+      margin-left: 6px;
+      background: #fff;
     }
     button#submit, button.ghost, button.dl {
       margin-top: 20px;
       width: 100%;
       padding: 14px 18px;
       border: none;
-      border-radius: 999px;
+      border-radius: 2px;
       font: inherit;
       font-weight: 700;
       cursor: pointer;
-      color: #0b1220;
-      background: linear-gradient(90deg, var(--accent), #7ec8ff);
+      color: #fff;
+      background: var(--samsung-blue);
+      transition: background 0.15s, transform 0.15s;
     }
+    button#submit:hover { background: var(--samsung-blue-deep); }
     button#submit:disabled, button.dl:disabled { opacity: 0.5; cursor: not-allowed; }
     button.ghost {
       margin-top: 0;
       width: auto;
-      padding: 6px 12px;
-      font-size: 0.82rem;
+      padding: 7px 12px;
+      font-size: 0.8rem;
       font-weight: 600;
-      color: var(--ink);
-      background: rgba(255,255,255,0.06);
+      color: var(--samsung-blue);
+      background: #fff;
       border: 1px solid var(--line);
     }
-    button.ghost:hover { border-color: var(--accent); }
+    button.ghost:hover { border-color: var(--samsung-blue); }
     button.dl {
       margin-top: 12px;
-      color: #062416;
-      background: linear-gradient(90deg, #3bbf8c, var(--ok));
+      background: var(--ok);
     }
     button.dl.sm {
       margin-top: 0;
@@ -180,41 +237,43 @@
     details.advanced {
       margin-top: 16px;
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 4px;
       padding: 10px 12px;
       color: var(--muted);
       font-size: 0.9rem;
+      background: #fafbfd;
     }
-    details.advanced summary { cursor: pointer; color: var(--ink); }
+    details.advanced summary { cursor: pointer; color: var(--ink); font-weight: 600; }
     #status {
       margin-top: 20px;
       padding: 14px 16px;
-      border-radius: 12px;
+      border-radius: 4px;
       border: 1px solid var(--line);
       font-size: 0.95rem;
       line-height: 1.45;
       display: none;
+      background: #fafbfd;
     }
     #status.show { display: block; }
-    #status.ok { border-color: rgba(93, 204, 160, 0.4); color: var(--ok); }
-    #status.err { border-color: rgba(240, 113, 120, 0.45); color: var(--err); }
+    #status.ok { border-color: rgba(10, 122, 75, 0.35); color: var(--ok); }
+    #status.err { border-color: rgba(198, 40, 40, 0.35); color: var(--err); }
     #status.info { color: var(--ink); }
     #status .meta { color: var(--muted); font-size: 0.88rem; margin-top: 8px; white-space: pre-wrap; }
     .bar {
       margin-top: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
+      height: 8px;
+      border-radius: 2px;
+      background: #e8ecf5;
       overflow: hidden;
     }
     .bar > i {
       display: block;
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--accent), #7ec8ff);
+      background: linear-gradient(90deg, var(--samsung-blue), var(--sky));
       transition: width 0.35s ease;
     }
-    .bar.ok > i { background: linear-gradient(90deg, #3bbf8c, var(--ok)); }
+    .bar.ok > i { background: linear-gradient(90deg, #0a7a4b, #1aa36a); }
     .pct {
       display: flex;
       justify-content: space-between;
@@ -226,15 +285,15 @@
     .jobs { display: flex; flex-direction: column; gap: 12px; }
     .job {
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 4px;
       padding: 12px 14px;
-      background: rgba(0,0,0,0.18);
+      background: #fff;
       transition: border-color 0.15s;
     }
-    .job.active { border-color: rgba(61, 156, 240, 0.55); box-shadow: 0 0 0 1px rgba(61,156,240,0.15); }
-    .job.running { border-color: rgba(232, 168, 124, 0.35); }
-    .job.ready { border-color: rgba(93, 204, 160, 0.35); }
-    .job.failed { border-color: rgba(240, 113, 120, 0.4); }
+    .job.active { border-color: var(--samsung-blue); }
+    .job.running { border-color: rgba(196, 92, 0, 0.35); }
+    .job.ready { border-color: rgba(10, 122, 75, 0.35); }
+    .job.failed { border-color: rgba(198, 40, 40, 0.35); }
     .job-top {
       display: flex;
       flex-wrap: wrap;
@@ -248,26 +307,27 @@
       align-items: center;
       gap: 6px;
       padding: 3px 9px;
-      border-radius: 999px;
-      font-size: 0.75rem;
+      border-radius: 2px;
+      font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       border: 1px solid var(--line);
       color: var(--muted);
+      background: #fafbfd;
     }
     .badge::before {
       content: "";
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: var(--muted);
     }
-    .badge.run { color: var(--accent2); border-color: rgba(232,168,124,0.35); }
-    .badge.run::before { background: var(--accent2); box-shadow: 0 0 8px rgba(232,168,124,0.7); animation: pulse 1.4s infinite; }
-    .badge.ok { color: var(--ok); border-color: rgba(93,204,160,0.35); }
+    .badge.run { color: var(--run); border-color: rgba(196,92,0,0.25); }
+    .badge.run::before { background: var(--run); animation: pulse 1.4s infinite; }
+    .badge.ok { color: var(--ok); border-color: rgba(10,122,75,0.25); }
     .badge.ok::before { background: var(--ok); }
-    .badge.err { color: var(--err); border-color: rgba(240,113,120,0.4); }
+    .badge.err { color: var(--err); border-color: rgba(198,40,40,0.25); }
     .badge.err::before { background: var(--err); }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
@@ -282,34 +342,45 @@
     }
     .job-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .empty { color: var(--muted); font-size: 0.9rem; padding: 8px 0; }
-    a { color: var(--accent); }
+    a { color: var(--samsung-blue); }
     footer {
       margin-top: 28px;
       color: var(--muted);
-      font-size: 0.85rem;
-      line-height: 1.5;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      animation: rise 0.7s ease both;
+      animation-delay: 0.12s;
     }
+    footer strong { color: var(--samsung-blue); font-weight: 700; }
   </style>
 </head>
 <body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">Samsung Ventures<span>Global</span></div>
+      <div class="team-tag">For the Global Team</div>
+    </div>
+  </header>
+
   <main>
-    <h1>Slide Localize</h1>
-    <p class="lead">Drop a PDF or PPTX, pick a language, submit. Watch live progress below — no local install.</p>
-    <p class="privacy">Private to this browser tab: others cannot see your jobs or download your PDF. Closing / leaving this tab schedules file deletion.</p>
+    <section class="hero">
+      <h1>Slide <em>Localize</em></h1>
+      <p class="lead">Translate investor decks to EN · 中文 · 한국어 · 日本語 while keeping layout intact. Built for Samsung Ventures Global Team.</p>
+    </section>
 
     <div class="panel" id="livePanel">
       <div class="panel-head">
-        <h2>Your jobs (this tab)</h2>
+        <h2>Jobs</h2>
         <span class="hint" id="jobsHint">Refreshing…</span>
       </div>
-      <div class="jobs" id="jobsList"><div class="empty">No jobs in this tab yet. Submit a PDF to start.</div></div>
+      <div class="jobs" id="jobsList"><div class="empty">No jobs yet. Upload a PDF to begin.</div></div>
     </div>
 
     <div class="panel">
       <label class="field">File</label>
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop PDF here">
         <strong id="fileLabel">Drop PDF / PPTX here</strong>
-        <span>or click to browse · supports large BPs up to ~100 pages (batched)</span>
+        <span>or click to browse · up to ~100 pages</span>
       </div>
       <input type="file" id="file" accept=".pdf,.pptx,application/pdf" />
 
@@ -328,7 +399,7 @@
         </label>
         <label class="toggle" title="Pages processed per Automation run">
           Batch size
-          <select id="batchSize" style="margin-left:6px;background:#0b1220;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 8px;">
+          <select id="batchSize">
             <option value="5" selected>5</option>
             <option value="8">8</option>
             <option value="10">10</option>
@@ -337,9 +408,9 @@
       </div>
 
       <details class="advanced" id="advancedBox">
-        <summary>Access (if API returns 401)</summary>
+        <summary>Advanced</summary>
         <label class="field">Access token</label>
-        <input type="text" id="accessToken" placeholder="Paste team token if required" autocomplete="off" />
+        <input type="text" id="accessToken" placeholder="Only if required" autocomplete="off" />
         <label class="field">API base URL</label>
         <input type="text" id="apiBase" placeholder="Same site by default" />
         <p id="authHint" style="color:var(--muted);font-size:0.85rem;margin:8px 0 0;"></p>
@@ -350,8 +421,8 @@
     </div>
 
     <footer>
-      Hosted mode uses this same origin as the API. Local dev: <code>python3 web/server.py</code><br />
-      Skill: <code>ppt-slide-localize</code> · files are session-private
+      Provided for <strong>Samsung Ventures Global Team</strong><br />
+      Slide localization · layout-preserving · multi-language
     </footer>
   </main>
   <script>
@@ -424,13 +495,12 @@
         window.__health = h;
         const hint = document.getElementById("authHint");
         if (!hint) return;
-        const priv = h.session_privacy ? "Session privacy on. " : "";
         if (h.webhook_configured) {
-          hint.textContent = priv + "Automation webhook: ready (URL + auth).";
+          hint.textContent = "Automation connected.";
         } else if (h.webhook_url_configured && !h.webhook_auth_configured) {
-          hint.textContent = priv + "Automation webhook URL set, but CURSOR_WEBHOOK_AUTH missing.";
+          hint.textContent = "Automation URL set; auth still missing.";
         } else {
-          hint.textContent = priv + "Automation webhook not fully configured yet.";
+          hint.textContent = "Automation not fully configured yet.";
         }
       })
       .catch(() => {});
@@ -490,13 +560,11 @@
       const missing = Array.isArray(cp.missing) ? cp.missing : [];
       const next = cp.next_page ? ("p" + String(cp.next_page).padStart(2, "0")) : "—";
       const batchHint = missing.length
-        ? "Next up: " + missing.slice(0, Number(j.batch_size || 5)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
-        : (prog.total && prog.done >= prog.total ? "All pages on server." : "");
+        ? "Next: " + missing.slice(0, Number(j.batch_size || 5)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
+        : (prog.total && prog.done >= prog.total ? "All pages ready." : "");
       const wh = j.webhook_error
-        ? "Webhook error (" + (j.webhook_status || "?") + "): " + j.webhook_error
-        : j.webhook_status
-          ? "Webhook " + j.webhook_status + (j.last_webhook_event ? " · " + j.last_webhook_event : "")
-          : "";
+        ? "Automation error (" + (j.webhook_status || "?") + "): " + j.webhook_error
+        : "";
       const ready = j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length);
       const kind = ready ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
       const fname = (j.output_pdfs && j.output_pdfs[0]) || ((j.output_pdf || "").split("/").pop()) || (j.run_id + ".pdf");
@@ -509,7 +577,6 @@
           (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
           (wh ? "\n" + esc(wh) : "") +
           "\nUpdated " + esc(j.updated_at || "") +
-          (ready ? "\nDownload only works in this tab." : "\nWatching live (this tab only)…") +
         "</div>" +
         (ready
           ? "<button type='button' class='dl' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>"
@@ -561,10 +628,10 @@
       const running = (jobs || []).filter((j) => isRunning(j.status));
       const recent = (jobs || []).slice(0, 12);
       jobsHint.textContent = running.length
-        ? running.length + " running · private · 3s"
-        : "Private to this tab · 3s";
+        ? running.length + " in progress"
+        : "Live";
       if (!recent.length) {
-        jobsList.innerHTML = "<div class='empty'>No jobs in this tab yet. Submit a PDF to start.</div>";
+        jobsList.innerHTML = "<div class='empty'>No jobs yet. Upload a PDF to begin.</div>";
         return;
       }
       jobsList.innerHTML = recent.map((j) => {
@@ -636,14 +703,8 @@
       if (leaving) return;
       leaving = true;
       const base = currentBase();
-      const body = "";
-      const url = base + "/v1/session/leave";
       try {
-        if (navigator.sendBeacon) {
-          const blob = new Blob([body], { type: "text/plain" });
-          // sendBeacon cannot set custom headers reliably — use fetch keepalive
-        }
-        fetch(url, {
+        fetch(base + "/v1/session/leave", {
           method: "POST",
           headers: authHeaders(),
           keepalive: true,
@@ -656,7 +717,7 @@
       try {
         const r = await fetch(base + "/v1/jobs", { headers: authHeaders() });
         if (!r.ok) {
-          jobsHint.textContent = "Could not load jobs (" + r.status + ")";
+          jobsHint.textContent = "Unavailable";
           return;
         }
         const data = await r.json();
@@ -669,7 +730,7 @@
           }
         }
       } catch (e) {
-        jobsHint.textContent = "Jobs board offline";
+        jobsHint.textContent = "Offline";
       }
     }
 
@@ -768,7 +829,7 @@
       fd.append("session_token", sessionToken());
 
       submitBtn.disabled = true;
-      setStatus("info", "Submitting to " + base + " …");
+      setStatus("info", "Submitting…");
       try {
         localStorage.setItem(LS_TOKEN, (accessToken.value || "").trim());
         await sessionHello();
@@ -782,21 +843,14 @@
         try { body = JSON.parse(text); } catch { body = { detail: text }; }
         if (!res.ok) {
           const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail || body, null, 2);
-          setStatus(
-            "err",
-            "API error (" + res.status + ").\n\n" + detail +
-              "\n\nIf this is local: python3 web/server.py — if hosted, check ACCESS_TOKEN / Advanced settings."
-          );
+          setStatus("err", "API error (" + res.status + ").\n\n" + detail);
           return;
         }
         progressHtml(body, base);
         startPoll(base, body.run_id);
         refreshJobsBoard();
       } catch (e) {
-        setStatus(
-          "err",
-          "Cannot reach API at " + base + "\n" + (e && e.message ? e.message : e)
-        );
+        setStatus("err", "Cannot reach API.\n" + (e && e.message ? e.message : e));
       } finally {
         submitBtn.disabled = false;
       }
