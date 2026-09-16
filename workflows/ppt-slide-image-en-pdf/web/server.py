@@ -53,7 +53,7 @@ PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 MAX_PAGES = int(os.environ.get("MAX_PAGES", "100"))
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "150"))
-DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "8"))
+DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "12"))
 MAX_BATCH_SIZE = int(os.environ.get("MAX_BATCH_SIZE", "15"))
 # Rough wall-clock seconds per page for ETA before measured rate exists.
 ETA_SEC_PER_PAGE = float(os.environ.get("ETA_SEC_PER_PAGE", "70"))

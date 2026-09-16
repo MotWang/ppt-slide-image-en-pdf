@@ -399,11 +399,11 @@
         </label>
         <label class="toggle" title="Pages processed per Automation run">
           Batch size
-          <select id="batchSize" title="Pages per Automation turn. 8–10 recommended.">
+          <select id="batchSize" title="Pages per Automation turn. 12 default · max 15.">
             <option value="5">5 · safer</option>
-            <option value="8" selected>8 · balanced</option>
+            <option value="8">8 · balanced</option>
             <option value="10">10 · faster</option>
-            <option value="12">12 · aggressive</option>
+            <option value="12" selected>12 · default</option>
             <option value="15">15 · max</option>
           </select>
         </label>
@@ -842,7 +842,7 @@
       fd.append("target_lang", lang);
       fd.append("remove_watermarks", document.getElementById("wm").checked ? "true" : "false");
       fd.append("auto_export", "true");
-      fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "8");
+      fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "12");
       fd.append("session_token", sessionToken());
 
       submitBtn.disabled = true;

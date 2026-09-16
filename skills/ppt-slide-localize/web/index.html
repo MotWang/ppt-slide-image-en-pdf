@@ -399,11 +399,11 @@
         </label>
         <label class="toggle" title="Pages processed per Automation run">
           Batch size
-          <select id="batchSize" title="Pages per Automation turn. 8–10 recommended.">
+          <select id="batchSize" title="Pages per Automation turn. 12 default · max 15.">
             <option value="5">5 · safer</option>
-            <option value="8" selected>8 · balanced</option>
+            <option value="8">8 · balanced</option>
             <option value="10">10 · faster</option>
-            <option value="12">12 · aggressive</option>
+            <option value="12" selected>12 · default</option>
             <option value="15">15 · max</option>
           </select>
         </label>
@@ -543,6 +543,8 @@
           total: Number(p.total || j.page_count || 0),
           pct: Number(p.pct || 0),
           label: p.label || "?",
+          eta_label: p.eta_label,
+          eta_at: p.eta_at,
         };
       }
       const cp = j.checkpoint || {};

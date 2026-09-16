@@ -24,7 +24,7 @@ Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live
 2. Drop a **PDF / PPTX** (recommended ≤150MB)
 3. Pick target language: `EN` / `zh` / `ko` / `ja`
 4. Keep **Remove watermarks** checked (default)
-5. Choose **Batch size** (pages per Automation turn): `5` (default) / `8` / `10`
+5. Choose **Batch size** (pages per Automation turn): `5` / `8` / `10` / `12` (default) / `15`
 6. Click **Submit job** and note the `run_id`
 7. Wait until status is **`assembled`**, then download the PDF from the page
 
@@ -54,7 +54,8 @@ Optional environment variables:
 |----------|---------|---------|
 | `MAX_PAGES` | Max pages per deck | `100` |
 | `MAX_UPLOAD_MB` | Upload size limit (MB) | `150` |
-| `DEFAULT_BATCH_SIZE` | Default batch size | `5` |
+| `BATCH_SIZE` / `DEFAULT_BATCH_SIZE` | Default batch size | `12` |
+| `MAX_BATCH_SIZE` | Max pages per Automation turn | `15` |
 | `ACCESS_TOKEN` | Optional shared secret | empty (no auth) |
 | `PUBLIC_BASE_URL` | Public URL (written into job callback links) | local origin |
 | `CURSOR_WEBHOOK_URL` | Cursor Automation webhook URL | empty (job on disk only) |
