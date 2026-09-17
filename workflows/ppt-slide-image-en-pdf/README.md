@@ -2,6 +2,8 @@
 
 Reusable workflow: recreate each slide as a **localized** image with the **same layout**, strip watermarks, assemble a PDF, sync to GitHub.
 
+**Provider-first:** pluggable Image + LLM (see skill `ppt-slide-localize` / `SKILL.md`). Agents honor `job.json` → `providers`.
+
 **Usage (full):** see repo root [README.md](../../README.md).
 
 ## Why image-first

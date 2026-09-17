@@ -2,6 +2,8 @@
 
 Reusable workflow: recreate each slide as a **localized** image with the **same layout**, strip watermarks, assemble a PDF, sync to GitHub.
 
+**Provider-first:** pluggable Image + LLM (see [SKILL.md](./SKILL.md)). Agents honor `job.json` → `providers`.
+
 **Usage (full):** see repo root [README.md](../../README.md).
 
 ## Why image-first
@@ -60,7 +62,6 @@ Hosted: https://ppt-slide-localize.fly.dev/
 
 Drop a **PDF**, **PPTX** (LibreOffice converts → PDF → PNG), or **ZIP of page PNGs**, pick language + batch size, submit. In **Advanced**, choose **Image engine** (Cursor / Gemini / OpenAI / ByteDance Seedream / Qwen·万相 / fal) and **LLM** (Cursor / Gemini / OpenAI / Anthropic / DeepSeek / Kimi / Qwen); paste keys or set Fly secrets. Agent/Automation processes `job.json` in batches.
 
-**Access token / API base URL** = connection to *this* job API (not vendor AI keys).
 
 ## Commands
 
