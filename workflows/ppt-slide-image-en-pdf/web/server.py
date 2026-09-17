@@ -346,10 +346,14 @@ def try_export(run_dir: Path, source: Path) -> int:
     script = SCRIPTS / "export_slides.py"
     out_dir = run_dir / "pages_src"
     out_dir.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env.setdefault("HOME", "/tmp")
     proc = subprocess.run(
         [sys.executable, str(script), "--input", str(source), "--out-dir", str(out_dir)],
         capture_output=True,
         text=True,
+        env=env,
+        timeout=900,
     )
     if proc.returncode != 0:
         raise RuntimeError(proc.stderr or proc.stdout or "export_slides failed")
@@ -618,8 +622,8 @@ async def create_job(
     if not file.filename:
         raise HTTPException(400, "file required")
     suffix = Path(file.filename).suffix.lower()
-    if suffix not in {".pdf", ".pptx", ".png", ".jpg", ".jpeg"}:
-        raise HTTPException(400, "Supported: .pdf, .pptx, .png, .jpg")
+    if suffix not in {".pdf", ".pptx", ".zip", ".png", ".jpg", ".jpeg"}:
+        raise HTTPException(400, "Supported: .pdf, .pptx, .zip (page PNGs), .png, .jpg")
 
     data = await file.read()
     if not data:
@@ -662,7 +666,7 @@ async def create_job(
     }
     write_job(run_dir, job)
 
-    if do_export and suffix in {".pdf", ".pptx"}:
+    if do_export and suffix in {".pdf", ".pptx", ".zip"}:
         try:
             n = try_export(run_dir, dest)
             job["page_count"] = n
@@ -673,8 +677,9 @@ async def create_job(
                 write_job(run_dir, job)
                 raise HTTPException(413, detail=public_job(job))
             job["status"] = "exported"
+            kind = "ZIP pages" if suffix == ".zip" else ("PPTX" if suffix == ".pptx" else "PDF")
             job["message"] = (
-                f"Exported {n} pages. Agent will process in batches of {bsz}."
+                f"Exported {n} pages from {kind}. Agent will process in batches of {bsz}."
             )
             write_job(run_dir, job)
         except HTTPException:
@@ -683,17 +688,40 @@ async def create_job(
             err = str(e)
             job["status"] = "failed"
             job["error"] = err
-            if suffix == ".pptx" or "LibreOffice" in err or "soffice" in err.lower():
+            if suffix == ".pptx":
                 job["message"] = (
-                    "PPTX export is not available on the hosted site. "
-                    "Please save as PDF and upload the PDF instead."
+                    "PPTX conversion failed. Retry, or export to PDF in PowerPoint and re-upload. "
+                    f"Detail: {err[:300]}"
+                )
+            elif suffix == ".zip":
+                job["message"] = (
+                    "ZIP export failed. Include page images named p01.png, p02.png, … "
+                    f"Detail: {err[:300]}"
                 )
             else:
                 job["message"] = (
-                    "Export failed. For PDF, ensure pymupdf works; "
-                    "or convert the deck to PDF and re-upload."
+                    "Export failed. Re-upload a valid PDF, or a ZIP of page PNGs. "
+                    f"Detail: {err[:300]}"
                 )
             job["traceback"] = traceback.format_exc()[-2000:]
+            write_job(run_dir, job)
+            raise HTTPException(500, detail=public_job(job))
+    elif do_export and suffix in {".png", ".jpg", ".jpeg"}:
+        # Single image → one-page deck
+        try:
+            from PIL import Image
+
+            pages = run_dir / "pages_src"
+            pages.mkdir(parents=True, exist_ok=True)
+            Image.open(dest).convert("RGB").save(pages / "p01.png")
+            job["page_count"] = 1
+            job["status"] = "exported"
+            job["message"] = "Exported 1 page from image. Agent will process."
+            write_job(run_dir, job)
+        except Exception as e:
+            job["status"] = "failed"
+            job["error"] = str(e)
+            job["message"] = f"Image import failed: {e}"
             write_job(run_dir, job)
             raise HTTPException(500, detail=public_job(job))
 

@@ -58,7 +58,7 @@ open workflows/ppt-slide-image-en-pdf/web/index.html
 
 Hosted: https://ppt-slide-localize.fly.dev/
 
-Drop a PDF, pick language + batch size, submit. Agent/Automation processes `job.json` in batches.
+Drop a **PDF**, **PPTX** (LibreOffice converts → PDF → PNG), or **ZIP of page PNGs**, pick language + batch size, submit. Agent/Automation processes `job.json` in batches.
 
 ## Commands
 
@@ -67,6 +67,7 @@ Drop a PDF, pick language + batch size, submit. Agent/Automation processes `job.
 python3 workflows/ppt-slide-image-en-pdf/scripts/export_slides.py \
   --input "/path/to/deck.pdf" \
   --out-dir "workflows/ppt-slide-image-en-pdf/runs/<run_id>/pages_src"
+# Also accepts .pptx (needs soffice) or .zip of page images
 
 # 2) Agent generates pages into pages_out/ via GenerateImage + reference
 

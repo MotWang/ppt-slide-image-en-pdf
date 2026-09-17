@@ -373,16 +373,16 @@
         <h2>Jobs</h2>
         <span class="hint" id="jobsHint">Refreshing…</span>
       </div>
-      <div class="jobs" id="jobsList"><div class="empty">No jobs yet. Upload a PDF to begin.</div></div>
+      <div class="jobs" id="jobsList"><div class="empty">No jobs yet. Upload a PDF, PPTX, or ZIP to begin.</div></div>
     </div>
 
     <div class="panel">
       <label class="field">File</label>
-      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop PDF here">
-        <strong id="fileLabel">Drop PDF here</strong>
-        <span>or click to browse · PDF recommended · up to ~100 pages</span>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop PDF or PPTX here">
+        <strong id="fileLabel">Drop PDF / PPTX / ZIP here</strong>
+        <span>PDF · PPTX (auto-convert) · ZIP of page PNGs · up to ~100 pages</span>
       </div>
-      <input type="file" id="file" accept=".pdf,application/pdf,.pptx" />
+      <input type="file" id="file" accept=".pdf,.pptx,.zip,application/pdf,application/zip,image/png,image/jpeg" />
 
       <label class="field">Target language</label>
       <div class="langs">
@@ -646,7 +646,7 @@
         ? running.length + " in progress"
         : "Live";
       if (!recent.length) {
-        jobsList.innerHTML = "<div class='empty'>No jobs yet. Upload a PDF to begin.</div>";
+        jobsList.innerHTML = "<div class='empty'>No jobs yet. Upload a PDF, PPTX, or ZIP to begin.</div>";
         return;
       }
       jobsList.innerHTML = recent.map((j) => {
@@ -753,7 +753,7 @@
 
     function setFile(f) {
       selectedFile = f || null;
-      fileLabel.textContent = f ? f.name : "Drop PDF here";
+      fileLabel.textContent = f ? f.name : "Drop PDF / PPTX / ZIP here";
     }
 
     drop.addEventListener("click", () => fileInput.click());
@@ -833,15 +833,7 @@
       const base = currentBase();
       localStorage.setItem(LS_KEY, base);
       if (!selectedFile) {
-        setStatus("err", "Please choose a PDF first.");
-        return;
-      }
-      const nameLower = (selectedFile.name || "").toLowerCase();
-      if (nameLower.endsWith(".pptx")) {
-        setStatus(
-          "err",
-          "Hosted site does not convert PPTX yet.\nPlease export to PDF in PowerPoint/Keynote, then upload the PDF."
-        );
+        setStatus("err", "Please choose a PDF, PPTX, or ZIP of page images.");
         return;
       }
       const lang = (document.querySelector('input[name="lang"]:checked') || {}).value || "en";

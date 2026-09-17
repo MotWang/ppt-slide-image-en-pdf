@@ -3,8 +3,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# LibreOffice Impress: PPTX → PDF on the hosted site.
+# fonts-liberation: readable fallback glyphs for CJK-ish decks when converting.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 libglib2.0-0 \
+    libreoffice-impress \
+    fonts-liberation \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 COPY web/requirements.txt /app/web/requirements.txt
@@ -17,8 +22,10 @@ ENV HOST=0.0.0.0
 ENV PORT=8787
 ENV DATA_DIR=/data
 ENV PYTHONUNBUFFERED=1
+# LibreOffice writes profile under HOME
+ENV HOME=/tmp
 
-RUN mkdir -p /data/runs
+RUN mkdir -p /data/runs /tmp
 
 EXPOSE 8787
 CMD ["python3", "/app/web/server.py"]

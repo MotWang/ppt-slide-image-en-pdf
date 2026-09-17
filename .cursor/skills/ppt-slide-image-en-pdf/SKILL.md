@@ -24,7 +24,8 @@ Legacy alias: `ppt-slide-image-en-pdf` (English-only wording in old chats still 
 ## When to use
 
 - User says: PPT 英文/中文/韩文/日文版、逐页重绘、去水印、合 PDF、同步 GitHub
-- Source is `.pptx` / `.pdf` / a folder of `p01.png`… page images
+- Source is `.pptx` / `.pdf` / `.zip` of page images / a folder of `p01.png`… page images
+- Hosted site: PPTX → LibreOffice PDF → PNG; ZIP of PNGs normalized to `pXX.png`
 - Colleagues submit via `workflows/.../web/` HTML + job API
 
 ## Target language
@@ -104,7 +105,7 @@ python3 workflows/ppt-slide-image-en-pdf/scripts/export_slides.py \
   --out-dir "workflows/ppt-slide-image-en-pdf/runs/<run_id>/pages_src"
 ```
 
-Tries **pymupdf → pypdfium2 → pdftoppm**.
+PDF: **pymupdf → pypdfium2 → pdftoppm**. PPTX: **soffice → PDF → PNG**. ZIP/folder: normalize images to `pXX.png`.
 
 ### 1b) Checkpoint / resume
 

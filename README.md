@@ -21,7 +21,7 @@ Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live
 ### 1. Web submit (recommended)
 
 1. Open https://ppt-slide-localize.fly.dev/
-2. Drop a **PDF / PPTX** (recommended ≤150MB)
+2. Drop a **PDF**, **PPTX** (server converts via LibreOffice), or **ZIP of page PNGs** (recommended ≤150MB)
 3. Pick target language: `EN` / `zh` / `ko` / `ja`
 4. Keep **Remove watermarks** checked (default)
 5. Choose **Batch size** (pages per Automation turn): `5` / `8` / `10` / `12` (default) / `15`
