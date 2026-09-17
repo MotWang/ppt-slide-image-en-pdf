@@ -60,6 +60,71 @@ ETA_SEC_PER_PAGE = float(os.environ.get("ETA_SEC_PER_PAGE", "70"))
 JOB_TTL_HOURS = int(os.environ.get("JOB_TTL_HOURS", "6"))
 LEAVE_GRACE_SEC = int(os.environ.get("LEAVE_GRACE_SEC", "90"))
 
+# Generation provider catalogs (UI + webhook). Keys may also come from Fly secrets.
+IMAGE_PROVIDERS = {
+    "cursor": {
+        "label": "Cursor GenerateImage",
+        "models": ["default"],
+        "needs_key": False,
+        "hint": "Built-in reference-image path (no external key).",
+    },
+    "gemini": {
+        "label": "Google Gemini / Imagen",
+        "models": [
+            "gemini-2.0-flash-preview-image-generation",
+            "imagen-3.0-generate-002",
+            "imagen-3.0-fast-generate-001",
+        ],
+        "needs_key": True,
+        "key_env": "GEMINI_API_KEY",
+        "hint": "Gemini image / Imagen. Paste key below or set fly secret GEMINI_API_KEY.",
+    },
+    "openai": {
+        "label": "OpenAI Images",
+        "models": ["gpt-image-1", "dall-e-3"],
+        "needs_key": True,
+        "key_env": "OPENAI_API_KEY",
+        "hint": "OpenAI Images API. Paste key below or set fly secret OPENAI_API_KEY.",
+    },
+    "fal": {
+        "label": "fal.ai",
+        "models": ["fal-ai/flux/dev", "fal-ai/flux/schnell"],
+        "needs_key": True,
+        "key_env": "FAL_KEY",
+        "hint": "fal.ai image models. Paste key below or set fly secret FAL_KEY.",
+    },
+}
+LLM_PROVIDERS = {
+    "cursor": {
+        "label": "Cursor Automation",
+        "models": ["default"],
+        "needs_key": False,
+        "hint": "Default orchestrator — receives webhooks and runs the skill.",
+    },
+    "gemini": {
+        "label": "Google Gemini",
+        "models": ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-pro"],
+        "needs_key": True,
+        "key_env": "GEMINI_API_KEY",
+        "hint": "Prefer Gemini for any text/reasoning assist beside image gen.",
+    },
+    "openai": {
+        "label": "OpenAI",
+        "models": ["gpt-4.1", "gpt-4o", "o4-mini"],
+        "needs_key": True,
+        "key_env": "OPENAI_API_KEY",
+        "hint": "Prefer OpenAI for text/reasoning assist.",
+    },
+    "anthropic": {
+        "label": "Anthropic Claude",
+        "models": ["claude-sonnet-4", "claude-opus-4", "claude-3-5-sonnet-latest"],
+        "needs_key": True,
+        "key_env": "ANTHROPIC_API_KEY",
+        "hint": "Prefer Claude for text/reasoning assist.",
+    },
+}
+SECRET_JOB_KEYS = {"owner_token", "agent_key", "provider_keys"}
+
 
 def webhook_authorization_header() -> str | None:
     raw = CURSOR_WEBHOOK_AUTH
@@ -166,7 +231,79 @@ def write_job(run_dir: Path, job: dict) -> None:
 
 
 def public_job(job: dict) -> dict:
-    return {k: v for k, v in job.items() if k not in {"owner_token", "agent_key"}}
+    return {k: v for k, v in job.items() if k not in SECRET_JOB_KEYS}
+
+
+def normalize_providers(
+    image_provider: str | None,
+    image_model: str | None,
+    llm_provider: str | None,
+    llm_model: str | None,
+) -> dict:
+    img = (image_provider or "cursor").strip().lower()
+    llm = (llm_provider or "cursor").strip().lower()
+    if img not in IMAGE_PROVIDERS:
+        raise HTTPException(400, f"image_provider must be one of {sorted(IMAGE_PROVIDERS)}")
+    if llm not in LLM_PROVIDERS:
+        raise HTTPException(400, f"llm_provider must be one of {sorted(LLM_PROVIDERS)}")
+    img_models = IMAGE_PROVIDERS[img]["models"]
+    llm_models = LLM_PROVIDERS[llm]["models"]
+    im = (image_model or img_models[0]).strip()
+    lm = (llm_model or llm_models[0]).strip()
+    if im not in img_models:
+        im = img_models[0]
+    if lm not in llm_models:
+        lm = llm_models[0]
+    return {
+        "image": img,
+        "image_model": im,
+        "image_label": IMAGE_PROVIDERS[img]["label"],
+        "llm": llm,
+        "llm_model": lm,
+        "llm_label": LLM_PROVIDERS[llm]["label"],
+    }
+
+
+def collect_provider_keys(
+    gemini_api_key: str | None,
+    openai_api_key: str | None,
+    anthropic_api_key: str | None,
+    fal_api_key: str | None,
+) -> dict:
+    """Merge pasted keys with server Fly secrets. Only non-empty values kept."""
+    keys: dict[str, str] = {}
+    for name, pasted, env_name in (
+        ("gemini", gemini_api_key, "GEMINI_API_KEY"),
+        ("openai", openai_api_key, "OPENAI_API_KEY"),
+        ("anthropic", anthropic_api_key, "ANTHROPIC_API_KEY"),
+        ("fal", fal_api_key, "FAL_KEY"),
+    ):
+        val = (pasted or "").strip() or os.environ.get(env_name, "").strip()
+        if val:
+            keys[name] = val
+    return keys
+
+
+def provider_instruction(providers: dict) -> str:
+    img = providers.get("image") or "cursor"
+    llm = providers.get("llm") or "cursor"
+    lines = [
+        f"Image engine: {providers.get('image_label')} (model={providers.get('image_model')}).",
+        f"LLM preference: {providers.get('llm_label')} (model={providers.get('llm_model')}).",
+    ]
+    if img == "cursor":
+        lines.append("Use Cursor GenerateImage + reference_image_paths for each page.")
+    else:
+        lines.append(
+            f"Prefer the {img} image API with model {providers.get('image_model')}; "
+            "use secrets.* keys from this payload (or server env). "
+            "Fall back to Cursor GenerateImage only if the API call fails."
+        )
+    if llm != "cursor":
+        lines.append(
+            f"When you need an external LLM, prefer {llm} model {providers.get('llm_model')}."
+        )
+    return " ".join(lines)
 
 
 def delete_run_dir(run_dir: Path) -> None:
@@ -430,6 +567,11 @@ def build_webhook_payload(job: dict, event: str = "job.created") -> dict:
         "result": with_agent(f"{base}/v1/jobs/{run_id}/result" if base else None, agent_key),
         "assemble": with_agent(f"{base}/v1/jobs/{run_id}/assemble" if base else None, agent_key),
     }
+    providers = job.get("providers") or normalize_providers("cursor", None, "cursor", None)
+    provider_keys = job.get("provider_keys") or {}
+    # Re-merge with live Fly secrets so rotated secrets still work on continue.
+    live_keys = collect_provider_keys(None, None, None, None)
+    secrets_out = {**live_keys, **provider_keys}
     return {
         "event": event,
         "run_id": run_id,
@@ -444,13 +586,16 @@ def build_webhook_payload(job: dict, event: str = "job.created") -> dict:
         "progress": cp.get("progress"),
         "public_base_url": base or None,
         "agent_key": agent_key or None,
+        "providers": providers,
+        "secrets": secrets_out or None,
         "urls": urls,
         "instruction": (
             "Large-deck batch mode: process ONLY batch_pages (up to batch_size) this run. "
             "Use urls.* which already include agent_key. Download pages_src.zip or input; "
-            "GenerateImage each missing page; POST PNGs to urls.pages_upload. "
+            "generate each missing page per providers.*; POST PNGs to urls.pages_upload. "
             "If more pages remain, POST urls.continue. When complete, POST urls.assemble "
-            "or urls.result. Do not share agent_key. Skill: ppt-slide-localize."
+            "or urls.result. Do not share agent_key or secrets. Skill: ppt-slide-localize. "
+            + provider_instruction(providers)
         ),
     }
 
@@ -533,6 +678,20 @@ def health() -> dict:
         "max_batch_size": MAX_BATCH_SIZE,
         "job_ttl_hours": JOB_TTL_HOURS,
         "leave_grace_sec": LEAVE_GRACE_SEC,
+        "image_providers": {
+            k: {"label": v["label"], "models": v["models"], "needs_key": v["needs_key"], "hint": v["hint"]}
+            for k, v in IMAGE_PROVIDERS.items()
+        },
+        "llm_providers": {
+            k: {"label": v["label"], "models": v["models"], "needs_key": v["needs_key"], "hint": v["hint"]}
+            for k, v in LLM_PROVIDERS.items()
+        },
+        "server_keys_configured": {
+            "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
+            "openai": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+            "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
+            "fal": bool(os.environ.get("FAL_KEY", "").strip()),
+        },
     }
 
 
@@ -601,6 +760,14 @@ async def create_job(
     auto_export: str = Form("true"),
     batch_size: str = Form(str(DEFAULT_BATCH_SIZE)),
     session_token: str = Form(...),
+    image_provider: str = Form("cursor"),
+    image_model: str = Form(""),
+    llm_provider: str = Form("cursor"),
+    llm_model: str = Form(""),
+    gemini_api_key: str = Form(""),
+    openai_api_key: str = Form(""),
+    anthropic_api_key: str = Form(""),
+    fal_api_key: str = Form(""),
     _: None = Depends(require_access),
 ) -> JSONResponse:
     purge_expired_jobs()
@@ -612,6 +779,22 @@ async def create_job(
     lang = (target_lang or "en").strip().lower()
     if lang not in ALLOWED_LANGS:
         raise HTTPException(400, f"target_lang must be one of {sorted(ALLOWED_LANGS)}")
+
+    providers = normalize_providers(image_provider, image_model, llm_provider, llm_model)
+    provider_keys = collect_provider_keys(
+        gemini_api_key, openai_api_key, anthropic_api_key, fal_api_key
+    )
+    # Require a key when choosing an external image engine (paste or Fly secret).
+    img = providers["image"]
+    if IMAGE_PROVIDERS[img].get("needs_key"):
+        key_name = {"gemini": "gemini", "openai": "openai", "fal": "fal"}.get(img)
+        if key_name and key_name not in provider_keys:
+            env_hint = IMAGE_PROVIDERS[img].get("key_env", "API_KEY")
+            raise HTTPException(
+                400,
+                f"image_provider={img} needs an API key. Paste it in Advanced, "
+                f"or set fly secrets {env_hint}='…'",
+            )
 
     try:
         bsz = int(str(batch_size).strip() or DEFAULT_BATCH_SIZE)
@@ -657,12 +840,17 @@ async def create_job(
         "batch_size": bsz,
         "max_pages": MAX_PAGES,
         "page_count": None,
+        "providers": providers,
+        "provider_keys": provider_keys,
         "status": "queued",
         "source_file": f"input/{dest_name}",
         "created_at": utc_now(),
         "updated_at": utc_now(),
         "error": None,
-        "message": "Queued. Waiting for Cursor Agent / Automation (batch mode for large decks).",
+        "message": (
+            f"Queued · image={providers['image_label']} · llm={providers['llm_label']}. "
+            "Waiting for Cursor Agent / Automation (batch mode)."
+        ),
     }
     write_job(run_dir, job)
 

@@ -244,6 +244,47 @@
       background: #fafbfd;
     }
     details.advanced summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+    details.advanced .adv-sec {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    details.advanced .adv-sec:first-of-type { border-top: none; padding-top: 8px; }
+    details.advanced .adv-title {
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin: 0 0 6px;
+    }
+    details.advanced .adv-help {
+      margin: 0 0 10px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    details.advanced .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 640px) {
+      details.advanced .field-row { grid-template-columns: 1fr; }
+    }
+    details.advanced label.field { margin-top: 8px; }
+    details.advanced select { width: 100%; margin-left: 0; }
+    details.advanced .key-block { display: none; }
+    details.advanced .key-block.show { display: block; }
+    details.advanced input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+    }
     #status {
       margin-top: 20px;
       padding: 14px 16px;
@@ -409,13 +450,93 @@
         </label>
       </div>
 
-      <details class="advanced" id="advancedBox">
+      <details class="advanced" id="advancedBox" open>
         <summary>Advanced</summary>
-        <label class="field">Access token</label>
-        <input type="text" id="accessToken" placeholder="Only if required" autocomplete="off" />
-        <label class="field">API base URL</label>
-        <input type="text" id="apiBase" placeholder="Same site by default" />
-        <p id="authHint" style="color:var(--muted);font-size:0.85rem;margin:8px 0 0;"></p>
+
+        <div class="adv-sec">
+          <p class="adv-title">Site connection</p>
+          <p class="adv-help">
+            These talk to <em>this</em> job API (Fly), not Gemini / OpenAI.
+            Leave defaults unless you self-host or the site requires a lock token.
+          </p>
+          <label class="field">Access token (site lock)</label>
+          <input type="password" id="accessToken" placeholder="Only if ACCESS_TOKEN is set on the server" autocomplete="off" />
+          <label class="field">API base URL</label>
+          <input type="text" id="apiBase" placeholder="Same site by default" />
+          <p id="authHint" style="color:var(--muted);font-size:0.85rem;margin:8px 0 0;"></p>
+        </div>
+
+        <div class="adv-sec">
+          <p class="adv-title">Image engine</p>
+          <p class="adv-help">
+            How each slide is redrawn. Default Cursor GenerateImage needs no key.
+            Gemini / OpenAI / fal need a key (paste below or <code>fly secrets</code>).
+          </p>
+          <div class="field-row">
+            <div>
+              <label class="field">Provider</label>
+              <select id="imageProvider">
+                <option value="cursor" selected>Cursor GenerateImage</option>
+                <option value="gemini">Google Gemini / Imagen</option>
+                <option value="openai">OpenAI Images</option>
+                <option value="fal">fal.ai</option>
+              </select>
+            </div>
+            <div>
+              <label class="field">Model</label>
+              <select id="imageModel"></select>
+            </div>
+          </div>
+          <p id="imageHint" class="adv-help" style="margin-top:8px;"></p>
+        </div>
+
+        <div class="adv-sec">
+          <p class="adv-title">LLM / agent</p>
+          <p class="adv-help">
+            Orchestration still goes through Cursor Automation webhooks.
+            Pick another LLM when you want the agent to prefer that API for reasoning.
+          </p>
+          <div class="field-row">
+            <div>
+              <label class="field">Provider</label>
+              <select id="llmProvider">
+                <option value="cursor" selected>Cursor Automation</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic Claude</option>
+              </select>
+            </div>
+            <div>
+              <label class="field">Model</label>
+              <select id="llmModel"></select>
+            </div>
+          </div>
+          <p id="llmHint" class="adv-help" style="margin-top:8px;"></p>
+        </div>
+
+        <div class="adv-sec key-block" id="keysBlock">
+          <p class="adv-title">Provider API keys</p>
+          <p class="adv-help">
+            Stored on the job only (hidden from the Jobs board). Prefer Fly secrets for shared keys:
+            <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ANTHROPIC_API_KEY</code> · <code>FAL_KEY</code>
+          </p>
+          <div class="key-block" id="keyGemini">
+            <label class="field">Gemini API key</label>
+            <input type="password" id="geminiKey" placeholder="AIza…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyOpenai">
+            <label class="field">OpenAI API key</label>
+            <input type="password" id="openaiKey" placeholder="sk-…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyAnthropic">
+            <label class="field">Anthropic API key</label>
+            <input type="password" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyFal">
+            <label class="field">fal.ai key</label>
+            <input type="password" id="falKey" placeholder="fal key" autocomplete="off" />
+          </div>
+        </div>
       </details>
 
       <button type="button" id="submit">Submit job</button>
@@ -430,6 +551,10 @@
   <script>
     const LS_KEY = "ppt_slide_localize_api_base";
     const LS_TOKEN = "ppt_slide_localize_token";
+    const LS_IMG = "ppt_slide_localize_image_provider";
+    const LS_IMG_MODEL = "ppt_slide_localize_image_model";
+    const LS_LLM = "ppt_slide_localize_llm_provider";
+    const LS_LLM_MODEL = "ppt_slide_localize_llm_model";
     const SS_SESSION = "ppt_slide_localize_session";
     const SS_JOB = "ppt_slide_localize_active_job";
     const drop = document.getElementById("drop");
@@ -437,6 +562,12 @@
     const fileLabel = document.getElementById("fileLabel");
     const apiBase = document.getElementById("apiBase");
     const accessToken = document.getElementById("accessToken");
+    const imageProvider = document.getElementById("imageProvider");
+    const imageModel = document.getElementById("imageModel");
+    const llmProvider = document.getElementById("llmProvider");
+    const llmModel = document.getElementById("llmModel");
+    const imageHint = document.getElementById("imageHint");
+    const llmHint = document.getElementById("llmHint");
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submit");
     const jobsList = document.getElementById("jobsList");
@@ -446,6 +577,21 @@
     let jobsTimer = null;
     let watchedRunId = null;
     let leaving = false;
+    let providerCatalog = {
+      image_providers: {
+        cursor: { label: "Cursor GenerateImage", models: ["default"], needs_key: false, hint: "Built-in reference-image path (no external key)." },
+        gemini: { label: "Google Gemini / Imagen", models: ["gemini-2.0-flash-preview-image-generation", "imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"], needs_key: true, hint: "Needs Gemini API key." },
+        openai: { label: "OpenAI Images", models: ["gpt-image-1", "dall-e-3"], needs_key: true, hint: "Needs OpenAI API key." },
+        fal: { label: "fal.ai", models: ["fal-ai/flux/dev", "fal-ai/flux/schnell"], needs_key: true, hint: "Needs fal key." },
+      },
+      llm_providers: {
+        cursor: { label: "Cursor Automation", models: ["default"], needs_key: false, hint: "Default orchestrator." },
+        gemini: { label: "Google Gemini", models: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-pro"], needs_key: true, hint: "Prefer Gemini for reasoning." },
+        openai: { label: "OpenAI", models: ["gpt-4.1", "gpt-4o", "o4-mini"], needs_key: true, hint: "Prefer OpenAI for reasoning." },
+        anthropic: { label: "Anthropic Claude", models: ["claude-sonnet-4", "claude-opus-4", "claude-3-5-sonnet-latest"], needs_key: true, hint: "Prefer Claude for reasoning." },
+      },
+      server_keys_configured: {},
+    };
 
     function defaultApiBase() {
       if (location.protocol === "http:" || location.protocol === "https:") {
@@ -473,8 +619,49 @@
       return t;
     }
 
+    function fillModelSelect(sel, models, preferred) {
+      sel.innerHTML = "";
+      (models || ["default"]).forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        opt.textContent = m;
+        sel.appendChild(opt);
+      });
+      if (preferred && models && models.indexOf(preferred) >= 0) sel.value = preferred;
+      else if (models && models.length) sel.value = models[0];
+    }
+
+    function syncProviderUI() {
+      const img = imageProvider.value || "cursor";
+      const llm = llmProvider.value || "cursor";
+      const imgMeta = (providerCatalog.image_providers || {})[img] || { models: ["default"], hint: "" };
+      const llmMeta = (providerCatalog.llm_providers || {})[llm] || { models: ["default"], hint: "" };
+      fillModelSelect(imageModel, imgMeta.models, localStorage.getItem(LS_IMG_MODEL));
+      fillModelSelect(llmModel, llmMeta.models, localStorage.getItem(LS_LLM_MODEL));
+      imageHint.textContent = imgMeta.hint || "";
+      llmHint.textContent = llmMeta.hint || "";
+
+      const need = {
+        gemini: img === "gemini" || llm === "gemini",
+        openai: img === "openai" || llm === "openai",
+        anthropic: llm === "anthropic",
+        fal: img === "fal",
+      };
+      const anyKey = need.gemini || need.openai || need.anthropic || need.fal;
+      document.getElementById("keysBlock").classList.toggle("show", anyKey);
+      document.getElementById("keyGemini").classList.toggle("show", need.gemini);
+      document.getElementById("keyOpenai").classList.toggle("show", need.openai);
+      document.getElementById("keyAnthropic").classList.toggle("show", need.anthropic);
+      document.getElementById("keyFal").classList.toggle("show", need.fal);
+
+      localStorage.setItem(LS_IMG, img);
+      localStorage.setItem(LS_LLM, llm);
+    }
+
     apiBase.value = localStorage.getItem(LS_KEY) || defaultApiBase();
     accessToken.value = localStorage.getItem(LS_TOKEN) || "";
+    imageProvider.value = localStorage.getItem(LS_IMG) || "cursor";
+    llmProvider.value = localStorage.getItem(LS_LLM) || "cursor";
     apiBase.addEventListener("change", () => {
       localStorage.setItem(LS_KEY, apiBase.value.trim().replace(/\/$/, ""));
       refreshJobsBoard();
@@ -483,6 +670,11 @@
       localStorage.setItem(LS_TOKEN, accessToken.value.trim());
       refreshJobsBoard();
     });
+    imageProvider.addEventListener("change", syncProviderUI);
+    llmProvider.addEventListener("change", syncProviderUI);
+    imageModel.addEventListener("change", () => localStorage.setItem(LS_IMG_MODEL, imageModel.value));
+    llmModel.addEventListener("change", () => localStorage.setItem(LS_LLM_MODEL, llmModel.value));
+    syncProviderUI();
 
     function authHeaders(extra) {
       const h = Object.assign({ "X-Session-Token": sessionToken() }, extra || {});
@@ -495,15 +687,20 @@
       .then((r) => r.json())
       .then((h) => {
         window.__health = h;
+        if (h.image_providers) providerCatalog.image_providers = h.image_providers;
+        if (h.llm_providers) providerCatalog.llm_providers = h.llm_providers;
+        providerCatalog.server_keys_configured = h.server_keys_configured || {};
+        syncProviderUI();
         const hint = document.getElementById("authHint");
         if (!hint) return;
-        if (h.webhook_configured) {
-          hint.textContent = "Automation connected.";
-        } else if (h.webhook_url_configured && !h.webhook_auth_configured) {
-          hint.textContent = "Automation URL set; auth still missing.";
-        } else {
-          hint.textContent = "Automation not fully configured yet.";
-        }
+        const sk = h.server_keys_configured || {};
+        const keyBits = Object.keys(sk).filter((k) => sk[k]).join(", ");
+        let msg = "";
+        if (h.webhook_configured) msg = "Automation connected.";
+        else if (h.webhook_url_configured && !h.webhook_auth_configured) msg = "Automation URL set; auth still missing.";
+        else msg = "Automation not fully configured yet.";
+        if (keyBits) msg += " Server keys: " + keyBits + ".";
+        hint.textContent = msg;
       })
       .catch(() => {});
 
@@ -844,6 +1041,22 @@
       fd.append("auto_export", "true");
       fd.append("batch_size", (document.getElementById("batchSize") || {}).value || "12");
       fd.append("session_token", sessionToken());
+      fd.append("image_provider", imageProvider.value || "cursor");
+      fd.append("image_model", imageModel.value || "");
+      fd.append("llm_provider", llmProvider.value || "cursor");
+      fd.append("llm_model", llmModel.value || "");
+      const gKey = (document.getElementById("geminiKey") || {}).value || "";
+      const oKey = (document.getElementById("openaiKey") || {}).value || "";
+      const aKey = (document.getElementById("anthropicKey") || {}).value || "";
+      const fKey = (document.getElementById("falKey") || {}).value || "";
+      if (gKey.trim()) fd.append("gemini_api_key", gKey.trim());
+      if (oKey.trim()) fd.append("openai_api_key", oKey.trim());
+      if (aKey.trim()) fd.append("anthropic_api_key", aKey.trim());
+      if (fKey.trim()) fd.append("fal_api_key", fKey.trim());
+      localStorage.setItem(LS_IMG, imageProvider.value || "cursor");
+      localStorage.setItem(LS_IMG_MODEL, imageModel.value || "");
+      localStorage.setItem(LS_LLM, llmProvider.value || "cursor");
+      localStorage.setItem(LS_LLM_MODEL, llmModel.value || "");
 
       submitBtn.disabled = true;
       setStatus("info", "Submitting…");

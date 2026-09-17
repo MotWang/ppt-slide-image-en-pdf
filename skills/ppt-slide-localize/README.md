@@ -58,7 +58,9 @@ open workflows/ppt-slide-image-en-pdf/web/index.html
 
 Hosted: https://ppt-slide-localize.fly.dev/
 
-Drop a **PDF**, **PPTX** (LibreOffice converts → PDF → PNG), or **ZIP of page PNGs**, pick language + batch size, submit. Agent/Automation processes `job.json` in batches.
+Drop a **PDF**, **PPTX** (LibreOffice converts → PDF → PNG), or **ZIP of page PNGs**, pick language + batch size, submit. In **Advanced**, choose **Image engine** (Cursor / Gemini / OpenAI / fal) and **LLM** (Cursor / Gemini / OpenAI / Anthropic); paste keys or set Fly secrets. Agent/Automation processes `job.json` in batches.
+
+**Access token / API base URL** = connection to *this* job API (not vendor AI keys).
 
 ## Commands
 

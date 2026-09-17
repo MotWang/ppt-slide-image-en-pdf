@@ -22,11 +22,12 @@ Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live
 
 1. Open https://ppt-slide-localize.fly.dev/
 2. Drop a **PDF**, **PPTX** (server converts via LibreOffice), or **ZIP of page PNGs** (recommended ≤150MB)
-3. Pick target language: `EN` / `zh` / `ko` / `ja`
-4. Keep **Remove watermarks** checked (default)
-5. Choose **Batch size** (pages per Automation turn): `5` / `8` / `10` / `12` (default) / `15`
-6. Click **Submit job** and note the `run_id`
-7. Wait until status is **`assembled`**, then download the PDF from the page
+3. In **Advanced**: pick **Image engine** (Cursor GenerateImage default · Gemini/Imagen · OpenAI · fal) and **LLM** (Cursor · Gemini · OpenAI · Anthropic). Paste vendor keys there, or set Fly secrets (`GEMINI_API_KEY`, `OPENAI_API_KEY`, …). **Access token / API base** are for *this* job site only — not AI vendor keys.
+4. Pick target language: `EN` / `zh` / `ko` / `ja`
+5. Keep **Remove watermarks** checked (default)
+6. Choose **Batch size** (pages per Automation turn): `5` / `8` / `10` / `12` (default) / `15`
+7. Click **Submit job** and note the `run_id`
+8. Wait until status is **`assembled`**, then download the PDF from the page
 
 **Limits and conventions**
 
@@ -60,6 +61,10 @@ Optional environment variables:
 | `PUBLIC_BASE_URL` | Public URL (written into job callback links) | local origin |
 | `CURSOR_WEBHOOK_URL` | Cursor Automation webhook URL | empty (job on disk only) |
 | `CURSOR_WEBHOOK_AUTH` | Automation auth (`Bearer …` or raw `crsr_…` key) | empty (webhook calls fail with 401) |
+| `GEMINI_API_KEY` | Optional shared Gemini / Imagen key | empty |
+| `OPENAI_API_KEY` | Optional shared OpenAI key | empty |
+| `ANTHROPIC_API_KEY` | Optional shared Anthropic key | empty |
+| `FAL_KEY` | Optional shared fal.ai key | empty |
 | `WORKFLOW_ROOT` / `RUNS_DIR` | Workflow root / runs directory | see `web/server.py` |
 
 ### 3. Agent / Automation rules
