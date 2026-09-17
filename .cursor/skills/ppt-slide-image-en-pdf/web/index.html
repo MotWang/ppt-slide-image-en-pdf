@@ -470,7 +470,7 @@
           <p class="adv-title">Image engine</p>
           <p class="adv-help">
             How each slide is redrawn. Default Cursor GenerateImage needs no key.
-            Gemini / OpenAI / fal need a key (paste below or <code>fly secrets</code>).
+            External engines (Gemini / OpenAI / ByteDance / Qwen / fal) need a key.
           </p>
           <div class="field-row">
             <div>
@@ -479,6 +479,8 @@
                 <option value="cursor" selected>Cursor GenerateImage</option>
                 <option value="gemini">Google Gemini / Imagen</option>
                 <option value="openai">OpenAI Images</option>
+                <option value="bytedance">ByteDance Seedream (字节)</option>
+                <option value="qwen">Qwen / 通义万相</option>
                 <option value="fal">fal.ai</option>
               </select>
             </div>
@@ -504,6 +506,9 @@
                 <option value="gemini">Google Gemini</option>
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic Claude</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="kimi">Kimi (Moonshot)</option>
+                <option value="qwen">Qwen (DashScope)</option>
               </select>
             </div>
             <div>
@@ -517,8 +522,10 @@
         <div class="adv-sec key-block" id="keysBlock">
           <p class="adv-title">Provider API keys</p>
           <p class="adv-help">
-            Stored on the job only (hidden from the Jobs board). Prefer Fly secrets for shared keys:
-            <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ANTHROPIC_API_KEY</code> · <code>FAL_KEY</code>
+            Stored on the job only (hidden from the Jobs board). Prefer Fly secrets:
+            <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ANTHROPIC_API_KEY</code> ·
+            <code>ARK_API_KEY</code> · <code>DASHSCOPE_API_KEY</code> · <code>DEEPSEEK_API_KEY</code> ·
+            <code>MOONSHOT_API_KEY</code> · <code>FAL_KEY</code>
           </p>
           <div class="key-block" id="keyGemini">
             <label class="field">Gemini API key</label>
@@ -531,6 +538,22 @@
           <div class="key-block" id="keyAnthropic">
             <label class="field">Anthropic API key</label>
             <input type="password" id="anthropicKey" placeholder="sk-ant-…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyBytedance">
+            <label class="field">ByteDance / Ark API key</label>
+            <input type="password" id="bytedanceKey" placeholder="ARK / Volcengine key" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyQwen">
+            <label class="field">Qwen / DashScope API key</label>
+            <input type="password" id="qwenKey" placeholder="sk-…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyDeepseek">
+            <label class="field">DeepSeek API key</label>
+            <input type="password" id="deepseekKey" placeholder="sk-…" autocomplete="off" />
+          </div>
+          <div class="key-block" id="keyKimi">
+            <label class="field">Kimi / Moonshot API key</label>
+            <input type="password" id="kimiKey" placeholder="sk-…" autocomplete="off" />
           </div>
           <div class="key-block" id="keyFal">
             <label class="field">fal.ai key</label>
@@ -582,6 +605,8 @@
         cursor: { label: "Cursor GenerateImage", models: ["default"], needs_key: false, hint: "Built-in reference-image path (no external key)." },
         gemini: { label: "Google Gemini / Imagen", models: ["gemini-2.0-flash-preview-image-generation", "imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"], needs_key: true, hint: "Needs Gemini API key." },
         openai: { label: "OpenAI Images", models: ["gpt-image-1", "dall-e-3"], needs_key: true, hint: "Needs OpenAI API key." },
+        bytedance: { label: "ByteDance Seedream (字节)", models: ["doubao-seedream-5-0-260128", "doubao-seedream-4-5-251128", "doubao-seedream-4-0-250828", "doubao-seededit-3-0-i2i-250628"], needs_key: true, hint: "Needs Ark / Volcengine API key." },
+        qwen: { label: "Qwen / 通义万相", models: ["wanx2.1-t2i-plus", "wanx2.1-t2i-turbo", "wanx-v1", "qwen-image-plus"], needs_key: true, hint: "Needs DashScope API key." },
         fal: { label: "fal.ai", models: ["fal-ai/flux/dev", "fal-ai/flux/schnell"], needs_key: true, hint: "Needs fal key." },
       },
       llm_providers: {
@@ -589,6 +614,9 @@
         gemini: { label: "Google Gemini", models: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-pro"], needs_key: true, hint: "Prefer Gemini for reasoning." },
         openai: { label: "OpenAI", models: ["gpt-4.1", "gpt-4o", "o4-mini"], needs_key: true, hint: "Prefer OpenAI for reasoning." },
         anthropic: { label: "Anthropic Claude", models: ["claude-sonnet-4", "claude-opus-4", "claude-3-5-sonnet-latest"], needs_key: true, hint: "Prefer Claude for reasoning." },
+        deepseek: { label: "DeepSeek", models: ["deepseek-chat", "deepseek-reasoner", "deepseek-v3.2"], needs_key: true, hint: "Prefer DeepSeek for reasoning." },
+        kimi: { label: "Kimi (Moonshot)", models: ["kimi-k2.5", "moonshot-v1-128k", "moonshot-v1-32k"], needs_key: true, hint: "Prefer Kimi / Moonshot." },
+        qwen: { label: "Qwen (DashScope)", models: ["qwen-plus", "qwen-max", "qwen-turbo", "qwen2.5-72b-instruct"], needs_key: true, hint: "Prefer Qwen via DashScope." },
       },
       server_keys_configured: {},
     };
@@ -645,13 +673,21 @@
         gemini: img === "gemini" || llm === "gemini",
         openai: img === "openai" || llm === "openai",
         anthropic: llm === "anthropic",
+        bytedance: img === "bytedance",
+        qwen: img === "qwen" || llm === "qwen",
+        deepseek: llm === "deepseek",
+        kimi: llm === "kimi",
         fal: img === "fal",
       };
-      const anyKey = need.gemini || need.openai || need.anthropic || need.fal;
+      const anyKey = Object.keys(need).some((k) => need[k]);
       document.getElementById("keysBlock").classList.toggle("show", anyKey);
       document.getElementById("keyGemini").classList.toggle("show", need.gemini);
       document.getElementById("keyOpenai").classList.toggle("show", need.openai);
       document.getElementById("keyAnthropic").classList.toggle("show", need.anthropic);
+      document.getElementById("keyBytedance").classList.toggle("show", need.bytedance);
+      document.getElementById("keyQwen").classList.toggle("show", need.qwen);
+      document.getElementById("keyDeepseek").classList.toggle("show", need.deepseek);
+      document.getElementById("keyKimi").classList.toggle("show", need.kimi);
       document.getElementById("keyFal").classList.toggle("show", need.fal);
 
       localStorage.setItem(LS_IMG, img);
@@ -1049,10 +1085,18 @@
       const oKey = (document.getElementById("openaiKey") || {}).value || "";
       const aKey = (document.getElementById("anthropicKey") || {}).value || "";
       const fKey = (document.getElementById("falKey") || {}).value || "";
+      const bKey = (document.getElementById("bytedanceKey") || {}).value || "";
+      const qKey = (document.getElementById("qwenKey") || {}).value || "";
+      const dKey = (document.getElementById("deepseekKey") || {}).value || "";
+      const kKey = (document.getElementById("kimiKey") || {}).value || "";
       if (gKey.trim()) fd.append("gemini_api_key", gKey.trim());
       if (oKey.trim()) fd.append("openai_api_key", oKey.trim());
       if (aKey.trim()) fd.append("anthropic_api_key", aKey.trim());
       if (fKey.trim()) fd.append("fal_api_key", fKey.trim());
+      if (bKey.trim()) fd.append("bytedance_api_key", bKey.trim());
+      if (qKey.trim()) fd.append("qwen_api_key", qKey.trim());
+      if (dKey.trim()) fd.append("deepseek_api_key", dKey.trim());
+      if (kKey.trim()) fd.append("kimi_api_key", kKey.trim());
       localStorage.setItem(LS_IMG, imageProvider.value || "cursor");
       localStorage.setItem(LS_IMG_MODEL, imageModel.value || "");
       localStorage.setItem(LS_LLM, llmProvider.value || "cursor");

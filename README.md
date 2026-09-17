@@ -22,7 +22,7 @@ Secrets (`ACCESS_TOKEN`, `CURSOR_WEBHOOK_URL`, `CURSOR_WEBHOOK_AUTH`, etc.) live
 
 1. Open https://ppt-slide-localize.fly.dev/
 2. Drop a **PDF**, **PPTX** (server converts via LibreOffice), or **ZIP of page PNGs** (recommended ≤150MB)
-3. In **Advanced**: pick **Image engine** (Cursor GenerateImage default · Gemini/Imagen · OpenAI · fal) and **LLM** (Cursor · Gemini · OpenAI · Anthropic). Paste vendor keys there, or set Fly secrets (`GEMINI_API_KEY`, `OPENAI_API_KEY`, …). **Access token / API base** are for *this* job site only — not AI vendor keys.
+3. In **Advanced**: pick **Image engine** (Cursor · Gemini · OpenAI · ByteDance Seedream · Qwen/万相 · fal) and **LLM** (Cursor · Gemini · OpenAI · Anthropic · DeepSeek · Kimi · Qwen). Paste vendor keys there, or set Fly secrets (`GEMINI_API_KEY`, `ARK_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, …). **Access token / API base** are for *this* job site only — not AI vendor keys.
 4. Pick target language: `EN` / `zh` / `ko` / `ja`
 5. Keep **Remove watermarks** checked (default)
 6. Choose **Batch size** (pages per Automation turn): `5` / `8` / `10` / `12` (default) / `15`
@@ -64,6 +64,10 @@ Optional environment variables:
 | `GEMINI_API_KEY` | Optional shared Gemini / Imagen key | empty |
 | `OPENAI_API_KEY` | Optional shared OpenAI key | empty |
 | `ANTHROPIC_API_KEY` | Optional shared Anthropic key | empty |
+| `ARK_API_KEY` | Optional ByteDance / Volcengine ModelArk (Seedream) | empty |
+| `DASHSCOPE_API_KEY` | Optional Qwen / 通义万相 (DashScope) | empty |
+| `DEEPSEEK_API_KEY` | Optional DeepSeek | empty |
+| `MOONSHOT_API_KEY` | Optional Kimi / Moonshot | empty |
 | `FAL_KEY` | Optional shared fal.ai key | empty |
 | `WORKFLOW_ROOT` / `RUNS_DIR` | Workflow root / runs directory | see `web/server.py` |
 

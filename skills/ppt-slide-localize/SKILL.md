@@ -47,13 +47,13 @@ Read from user request or `runs/<run_id>/job.json` → `target_lang` (default `e
 
 | Field | Options | Notes |
 |-------|---------|--------|
-| `image` | `cursor` (default) · `gemini` · `openai` · `fal` | How each page is redrawn |
-| `image_model` | depends on provider | e.g. Imagen / gpt-image-1 |
-| `llm` | `cursor` (default) · `gemini` · `openai` · `anthropic` | Preferred reasoning API |
+| `image` | `cursor` (default) · `gemini` · `openai` · `bytedance` · `qwen` · `fal` | How each page is redrawn |
+| `image_model` | depends on provider | Seedream / Wanxiang / gpt-image-1 / … |
+| `llm` | `cursor` (default) · `gemini` · `openai` · `anthropic` · `deepseek` · `kimi` · `qwen` | Preferred reasoning API |
 | `llm_model` | depends on provider | |
 
 - **`cursor` image** → use Cursor `GenerateImage` + `reference_image_paths` (no external key).
-- **External image** → call that provider’s image API with `providers.image_model`; keys arrive in webhook `secrets` (or Fly `GEMINI_API_KEY` / `OPENAI_API_KEY` / `FAL_KEY`). Fall back to `GenerateImage` only if the API fails.
+- **External image** → call that provider’s image API with `providers.image_model`; keys arrive in webhook `secrets` (or Fly `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ARK_API_KEY` / `DASHSCOPE_API_KEY` / `FAL_KEY`). Fall back to `GenerateImage` only if the API fails.
 - **LLM ≠ cursor** → prefer that model for any text/reasoning assist; orchestration webhook still comes from Cursor Automation.
 - Never log or echo `secrets` / `provider_keys` / `agent_key`.
 

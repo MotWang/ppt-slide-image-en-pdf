@@ -61,6 +61,16 @@ JOB_TTL_HOURS = int(os.environ.get("JOB_TTL_HOURS", "6"))
 LEAVE_GRACE_SEC = int(os.environ.get("LEAVE_GRACE_SEC", "90"))
 
 # Generation provider catalogs (UI + webhook). Keys may also come from Fly secrets.
+PROVIDER_KEY_ENVS = {
+    "gemini": ("GEMINI_API_KEY",),
+    "openai": ("OPENAI_API_KEY",),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+    "fal": ("FAL_KEY",),
+    "bytedance": ("ARK_API_KEY", "VOLC_API_KEY", "BYTEDANCE_API_KEY"),
+    "qwen": ("DASHSCOPE_API_KEY", "QWEN_API_KEY"),
+    "deepseek": ("DEEPSEEK_API_KEY",),
+    "kimi": ("MOONSHOT_API_KEY", "KIMI_API_KEY"),
+}
 IMAGE_PROVIDERS = {
     "cursor": {
         "label": "Cursor GenerateImage",
@@ -76,6 +86,7 @@ IMAGE_PROVIDERS = {
             "imagen-3.0-fast-generate-001",
         ],
         "needs_key": True,
+        "key_id": "gemini",
         "key_env": "GEMINI_API_KEY",
         "hint": "Gemini image / Imagen. Paste key below or set fly secret GEMINI_API_KEY.",
     },
@@ -83,13 +94,41 @@ IMAGE_PROVIDERS = {
         "label": "OpenAI Images",
         "models": ["gpt-image-1", "dall-e-3"],
         "needs_key": True,
+        "key_id": "openai",
         "key_env": "OPENAI_API_KEY",
         "hint": "OpenAI Images API. Paste key below or set fly secret OPENAI_API_KEY.",
+    },
+    "bytedance": {
+        "label": "ByteDance Seedream (字节)",
+        "models": [
+            "doubao-seedream-5-0-260128",
+            "doubao-seedream-4-5-251128",
+            "doubao-seedream-4-0-250828",
+            "doubao-seededit-3-0-i2i-250628",
+        ],
+        "needs_key": True,
+        "key_id": "bytedance",
+        "key_env": "ARK_API_KEY",
+        "hint": "Volcengine ModelArk Seedream / Seededit. Paste ARK key or fly secret ARK_API_KEY.",
+    },
+    "qwen": {
+        "label": "Qwen / 通义万相",
+        "models": [
+            "wanx2.1-t2i-plus",
+            "wanx2.1-t2i-turbo",
+            "wanx-v1",
+            "qwen-image-plus",
+        ],
+        "needs_key": True,
+        "key_id": "qwen",
+        "key_env": "DASHSCOPE_API_KEY",
+        "hint": "DashScope Qwen / Wanxiang. Paste key or fly secret DASHSCOPE_API_KEY.",
     },
     "fal": {
         "label": "fal.ai",
         "models": ["fal-ai/flux/dev", "fal-ai/flux/schnell"],
         "needs_key": True,
+        "key_id": "fal",
         "key_env": "FAL_KEY",
         "hint": "fal.ai image models. Paste key below or set fly secret FAL_KEY.",
     },
@@ -105,6 +144,7 @@ LLM_PROVIDERS = {
         "label": "Google Gemini",
         "models": ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-1.5-pro"],
         "needs_key": True,
+        "key_id": "gemini",
         "key_env": "GEMINI_API_KEY",
         "hint": "Prefer Gemini for any text/reasoning assist beside image gen.",
     },
@@ -112,6 +152,7 @@ LLM_PROVIDERS = {
         "label": "OpenAI",
         "models": ["gpt-4.1", "gpt-4o", "o4-mini"],
         "needs_key": True,
+        "key_id": "openai",
         "key_env": "OPENAI_API_KEY",
         "hint": "Prefer OpenAI for text/reasoning assist.",
     },
@@ -119,8 +160,33 @@ LLM_PROVIDERS = {
         "label": "Anthropic Claude",
         "models": ["claude-sonnet-4", "claude-opus-4", "claude-3-5-sonnet-latest"],
         "needs_key": True,
+        "key_id": "anthropic",
         "key_env": "ANTHROPIC_API_KEY",
         "hint": "Prefer Claude for text/reasoning assist.",
+    },
+    "deepseek": {
+        "label": "DeepSeek",
+        "models": ["deepseek-chat", "deepseek-reasoner", "deepseek-v3.2"],
+        "needs_key": True,
+        "key_id": "deepseek",
+        "key_env": "DEEPSEEK_API_KEY",
+        "hint": "Prefer DeepSeek for reasoning. Paste key or fly secret DEEPSEEK_API_KEY.",
+    },
+    "kimi": {
+        "label": "Kimi (Moonshot)",
+        "models": ["kimi-k2.5", "moonshot-v1-128k", "moonshot-v1-32k"],
+        "needs_key": True,
+        "key_id": "kimi",
+        "key_env": "MOONSHOT_API_KEY",
+        "hint": "Prefer Kimi / Moonshot. Paste key or fly secret MOONSHOT_API_KEY.",
+    },
+    "qwen": {
+        "label": "Qwen (DashScope)",
+        "models": ["qwen-plus", "qwen-max", "qwen-turbo", "qwen2.5-72b-instruct"],
+        "needs_key": True,
+        "key_id": "qwen",
+        "key_env": "DASHSCOPE_API_KEY",
+        "hint": "Prefer Qwen via DashScope. Same key as image Qwen / 万相.",
     },
 }
 SECRET_JOB_KEYS = {"owner_token", "agent_key", "provider_keys"}
@@ -264,24 +330,24 @@ def normalize_providers(
     }
 
 
-def collect_provider_keys(
-    gemini_api_key: str | None,
-    openai_api_key: str | None,
-    anthropic_api_key: str | None,
-    fal_api_key: str | None,
-) -> dict:
+def collect_provider_keys(pasted: dict[str, str] | None = None) -> dict:
     """Merge pasted keys with server Fly secrets. Only non-empty values kept."""
+    pasted = pasted or {}
     keys: dict[str, str] = {}
-    for name, pasted, env_name in (
-        ("gemini", gemini_api_key, "GEMINI_API_KEY"),
-        ("openai", openai_api_key, "OPENAI_API_KEY"),
-        ("anthropic", anthropic_api_key, "ANTHROPIC_API_KEY"),
-        ("fal", fal_api_key, "FAL_KEY"),
-    ):
-        val = (pasted or "").strip() or os.environ.get(env_name, "").strip()
+    for name, envs in PROVIDER_KEY_ENVS.items():
+        val = (pasted.get(name) or "").strip()
+        if not val:
+            for env_name in envs:
+                val = os.environ.get(env_name, "").strip()
+                if val:
+                    break
         if val:
             keys[name] = val
     return keys
+
+
+def server_keys_status() -> dict[str, bool]:
+    return {name: bool(collect_provider_keys().get(name)) for name in PROVIDER_KEY_ENVS}
 
 
 def provider_instruction(providers: dict) -> str:
@@ -570,7 +636,7 @@ def build_webhook_payload(job: dict, event: str = "job.created") -> dict:
     providers = job.get("providers") or normalize_providers("cursor", None, "cursor", None)
     provider_keys = job.get("provider_keys") or {}
     # Re-merge with live Fly secrets so rotated secrets still work on continue.
-    live_keys = collect_provider_keys(None, None, None, None)
+    live_keys = collect_provider_keys()
     secrets_out = {**live_keys, **provider_keys}
     return {
         "event": event,
@@ -686,12 +752,7 @@ def health() -> dict:
             k: {"label": v["label"], "models": v["models"], "needs_key": v["needs_key"], "hint": v["hint"]}
             for k, v in LLM_PROVIDERS.items()
         },
-        "server_keys_configured": {
-            "gemini": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
-            "openai": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
-            "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
-            "fal": bool(os.environ.get("FAL_KEY", "").strip()),
-        },
+        "server_keys_configured": server_keys_status(),
     }
 
 
@@ -768,6 +829,10 @@ async def create_job(
     openai_api_key: str = Form(""),
     anthropic_api_key: str = Form(""),
     fal_api_key: str = Form(""),
+    bytedance_api_key: str = Form(""),
+    qwen_api_key: str = Form(""),
+    deepseek_api_key: str = Form(""),
+    kimi_api_key: str = Form(""),
     _: None = Depends(require_access),
 ) -> JSONResponse:
     purge_expired_jobs()
@@ -782,14 +847,24 @@ async def create_job(
 
     providers = normalize_providers(image_provider, image_model, llm_provider, llm_model)
     provider_keys = collect_provider_keys(
-        gemini_api_key, openai_api_key, anthropic_api_key, fal_api_key
+        {
+            "gemini": gemini_api_key,
+            "openai": openai_api_key,
+            "anthropic": anthropic_api_key,
+            "fal": fal_api_key,
+            "bytedance": bytedance_api_key,
+            "qwen": qwen_api_key,
+            "deepseek": deepseek_api_key,
+            "kimi": kimi_api_key,
+        }
     )
     # Require a key when choosing an external image engine (paste or Fly secret).
     img = providers["image"]
-    if IMAGE_PROVIDERS[img].get("needs_key"):
-        key_name = {"gemini": "gemini", "openai": "openai", "fal": "fal"}.get(img)
-        if key_name and key_name not in provider_keys:
-            env_hint = IMAGE_PROVIDERS[img].get("key_env", "API_KEY")
+    img_meta = IMAGE_PROVIDERS[img]
+    if img_meta.get("needs_key"):
+        key_name = img_meta.get("key_id") or img
+        if key_name not in provider_keys:
+            env_hint = img_meta.get("key_env", "API_KEY")
             raise HTTPException(
                 400,
                 f"image_provider={img} needs an API key. Paste it in Advanced, "
