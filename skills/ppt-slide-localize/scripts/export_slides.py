@@ -73,7 +73,8 @@ def pptx_to_pdf(pptx: Path, work: Path) -> Path:
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
     if not soffice:
         raise SystemExit(
-            "LibreOffice (`soffice`) not found. Export PPTX→PDF yourself, or install LibreOffice."
+            "PPTX needs LibreOffice on the server (soffice), which is not installed on the hosted site. "
+            "Please export the deck to PDF in PowerPoint/Keynote and upload the PDF instead."
         )
     run(
         [

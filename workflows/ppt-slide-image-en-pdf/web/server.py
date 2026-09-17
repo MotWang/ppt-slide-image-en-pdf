@@ -680,9 +680,19 @@ async def create_job(
         except HTTPException:
             raise
         except Exception as e:
+            err = str(e)
             job["status"] = "failed"
-            job["error"] = str(e)
-            job["message"] = "Export failed. Fix tools (pymupdf) or upload page PNGs."
+            job["error"] = err
+            if suffix == ".pptx" or "LibreOffice" in err or "soffice" in err.lower():
+                job["message"] = (
+                    "PPTX export is not available on the hosted site. "
+                    "Please save as PDF and upload the PDF instead."
+                )
+            else:
+                job["message"] = (
+                    "Export failed. For PDF, ensure pymupdf works; "
+                    "or convert the deck to PDF and re-upload."
+                )
             job["traceback"] = traceback.format_exc()[-2000:]
             write_job(run_dir, job)
             raise HTTPException(500, detail=public_job(job))
