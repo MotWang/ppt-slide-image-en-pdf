@@ -79,12 +79,15 @@ Distributable pack: `skills/ppt-slide-localize/`
 
 Hard rules (summary):
 
-1. **One page per** `GenerateImage` call, always with that page in `reference_image_paths`
-2. Preserve layout / cards / logos / colors; **remove all watermarks** (do not translate and keep them)
-3. Translate all visible body text into the target language; do not invent charts or numbers missing from the source
-4. Output filenames: `p01.png`, `p02.png`, …
-5. **Large BPs:** process only the current `batch_pages`; after upload call `/continue`; assemble the PDF only when the checkpoint is complete
-6. Fill missing pages only — never restart the whole deck from p01
+1. Honor `job.json` / webhook **`providers`**: Image engine and LLM are independent and pluggable (Cursor · Gemini · OpenAI · ByteDance · Qwen · fal · DeepSeek · Kimi · …). Fall back to Cursor GenerateImage only if the chosen image API fails.
+2. **One page per** image generation call, always conditioned on that page (reference / i2i / edit)
+3. Preserve layout / cards / logos / colors; **remove all watermarks** (do not translate and keep them)
+4. Translate all visible body text into the target language; do not invent charts or numbers missing from the source
+5. Output filenames: `p01.png`, `p02.png`, …
+6. **Large BPs:** process only the current `batch_pages`; after upload call `/continue`; assemble the PDF only when the checkpoint is complete
+7. Fill missing pages only — never restart the whole deck from p01
+
+Full routing tables + quality recipes: `.cursor/skills/ppt-slide-image-en-pdf/SKILL.md` / `skills/ppt-slide-localize/SKILL.md`.
 
 Hosted agent bridge APIs (same origin / token as the job):
 
