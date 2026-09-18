@@ -57,6 +57,39 @@
       font-size: 0.78rem;
       font-weight: 500;
     }
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .lang-switch button {
+      border: none;
+      background: transparent;
+      padding: 5px 10px;
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .lang-switch button.active {
+      background: var(--samsung-blue);
+      color: #fff;
+    }
+    .ko-guide {
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--samsung-blue);
+      background: rgba(20, 40, 160, 0.04);
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .ko-guide strong { color: var(--ink); font-weight: 600; }
     main {
       max-width: 760px;
       margin: 0 auto;
@@ -400,33 +433,40 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">Samsung Ventures<span>Global</span></div>
-      <div class="team-tag">For the Global Team</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="team-tag" data-i18n="teamTag">For the Global Team</div>
+        <div class="lang-switch" role="group" aria-label="UI language">
+          <button type="button" id="uiLangEn" data-lang="en">EN</button>
+          <button type="button" id="uiLangKo" data-lang="ko">한국어</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <h1>Slide <em>Localize</em></h1>
-      <p class="lead">Translate investor decks to EN · 中文 · 한국어 · 日本語 while keeping layout intact. Built for Samsung Ventures Global Team.</p>
+      <h1 data-i18n-html="heroTitle">Slide <em>Localize</em></h1>
+      <p class="lead" data-i18n="heroLead">Translate investor decks to EN · 中文 · 한국어 · 日本語 while keeping layout intact. Built for Samsung Ventures Global Team.</p>
+      <p class="ko-guide" data-i18n-html="koGuide"></p>
     </section>
 
     <div class="panel" id="livePanel">
       <div class="panel-head">
-        <h2>Jobs</h2>
-        <span class="hint" id="jobsHint">Refreshing…</span>
+        <h2 data-i18n="jobsTitle">Jobs</h2>
+        <span class="hint" id="jobsHint" data-i18n="refreshing">Refreshing…</span>
       </div>
-      <div class="jobs" id="jobsList"><div class="empty">No jobs yet. Upload a PDF, PPTX, or ZIP to begin.</div></div>
+      <div class="jobs" id="jobsList"><div class="empty" data-i18n="jobsEmpty">No jobs yet. Upload a PDF, PPTX, or ZIP to begin.</div></div>
     </div>
 
     <div class="panel">
-      <label class="field">File</label>
+      <label class="field" data-i18n="fileLabel">File</label>
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop PDF or PPTX here">
-        <strong id="fileLabel">Drop PDF / PPTX / ZIP here</strong>
-        <span>PDF · PPTX (auto-convert) · ZIP of page PNGs · up to ~100 pages</span>
+        <strong id="fileLabel" data-i18n="dropTitle">Drop PDF / PPTX / ZIP here</strong>
+        <span data-i18n="dropHint">PDF · PPTX (auto-convert) · ZIP of page PNGs · up to ~100 pages</span>
       </div>
       <input type="file" id="file" accept=".pdf,.pptx,.zip,application/pdf,application/zip,image/png,image/jpeg" />
 
-      <label class="field">Target language</label>
+      <label class="field" data-i18n="targetLang">Target language</label>
       <div class="langs">
         <label><input type="radio" name="lang" value="en" checked /> EN</label>
         <label><input type="radio" name="lang" value="zh" /> 中文</label>
@@ -437,22 +477,22 @@
       <div class="row">
         <label class="toggle">
           <input type="checkbox" id="wm" checked />
-          Remove watermarks
+          <span data-i18n="removeWm">Remove watermarks</span>
         </label>
         <label class="toggle" title="Pages processed per Automation run">
-          Batch size
+          <span data-i18n="batchSize">Batch size</span>
           <select id="batchSize" title="Pages per Automation turn. 12 default · max 15.">
-            <option value="5">5 · safer</option>
-            <option value="8">8 · balanced</option>
-            <option value="10">10 · faster</option>
-            <option value="12" selected>12 · default</option>
-            <option value="15">15 · max</option>
+            <option value="5" data-i18n="batch5">5 · safer</option>
+            <option value="8" data-i18n="batch8">8 · balanced</option>
+            <option value="10" data-i18n="batch10">10 · faster</option>
+            <option value="12" selected data-i18n="batch12">12 · default</option>
+            <option value="15" data-i18n="batch15">15 · max</option>
           </select>
         </label>
       </div>
 
       <details class="advanced" id="advancedBox" open>
-        <summary>Advanced</summary>
+        <summary data-i18n="advanced">Advanced</summary>
 
         <!-- Site connection kept for JS defaults; not shown — use same-origin Fly / localStorage -->
         <div class="adv-sec" id="siteConnectionSec" hidden aria-hidden="true">
@@ -462,25 +502,25 @@
         </div>
 
         <div class="adv-sec">
-          <p class="adv-title">Image engine</p>
-          <p class="adv-help">
+          <p class="adv-title" data-i18n="imageEngine">Image engine</p>
+          <p class="adv-help" data-i18n="imageHelp">
             How each slide is redrawn. Default Cursor GenerateImage needs no key.
             External engines (Gemini / OpenAI / ByteDance / Qwen / fal) need a key.
           </p>
           <div class="field-row">
             <div>
-              <label class="field">Provider</label>
+              <label class="field" data-i18n="provider">Provider</label>
               <select id="imageProvider">
                 <option value="cursor" selected>Cursor GenerateImage</option>
                 <option value="gemini">Google Gemini / Imagen</option>
                 <option value="openai">OpenAI Images</option>
-                <option value="bytedance">ByteDance Seedream (字节)</option>
-                <option value="qwen">Qwen / 通义万相</option>
+                <option value="bytedance">ByteDance Seedream</option>
+                <option value="qwen">Qwen / Wanxiang</option>
                 <option value="fal">fal.ai</option>
               </select>
             </div>
             <div>
-              <label class="field">Model</label>
+              <label class="field" data-i18n="model">Model</label>
               <select id="imageModel"></select>
             </div>
           </div>
@@ -488,14 +528,14 @@
         </div>
 
         <div class="adv-sec">
-          <p class="adv-title">LLM / agent</p>
-          <p class="adv-help">
+          <p class="adv-title" data-i18n="llmAgent">LLM / agent</p>
+          <p class="adv-help" data-i18n="llmHelp">
             Orchestration still goes through Cursor Automation webhooks.
             Pick another LLM when you want the agent to prefer that API for reasoning.
           </p>
           <div class="field-row">
             <div>
-              <label class="field">Provider</label>
+              <label class="field" data-i18n="provider">Provider</label>
               <select id="llmProvider">
                 <option value="cursor" selected>Cursor Automation</option>
                 <option value="gemini">Google Gemini</option>
@@ -507,7 +547,7 @@
               </select>
             </div>
             <div>
-              <label class="field">Model</label>
+              <label class="field" data-i18n="model">Model</label>
               <select id="llmModel"></select>
             </div>
           </div>
@@ -515,8 +555,8 @@
         </div>
 
         <div class="adv-sec key-block" id="keysBlock">
-          <p class="adv-title">Provider API keys</p>
-          <p class="adv-help">
+          <p class="adv-title" data-i18n="apiKeys">Provider API keys</p>
+          <p class="adv-help" data-i18n-html="keysHelp">
             Stored on the job only (hidden from the Jobs board). Prefer Fly secrets:
             <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ANTHROPIC_API_KEY</code> ·
             <code>ARK_API_KEY</code> · <code>DASHSCOPE_API_KEY</code> · <code>DEEPSEEK_API_KEY</code> ·
@@ -557,11 +597,11 @@
         </div>
       </details>
 
-      <button type="button" id="submit">Submit job</button>
+      <button type="button" id="submit" data-i18n="submit">Submit job</button>
       <div id="status" role="status" aria-live="polite"></div>
     </div>
 
-    <footer>
+    <footer data-i18n-html="footer">
       Provided for <strong>Samsung Ventures Global Team</strong><br />
       Slide localization · layout-preserving · multi-language
     </footer>
@@ -573,8 +613,144 @@
     const LS_IMG_MODEL = "ppt_slide_localize_image_model";
     const LS_LLM = "ppt_slide_localize_llm_provider";
     const LS_LLM_MODEL = "ppt_slide_localize_llm_model";
+    const LS_UI = "ppt_slide_localize_ui_lang";
     const SS_SESSION = "ppt_slide_localize_session";
     const SS_JOB = "ppt_slide_localize_active_job";
+
+    const I18N = {
+      en: {
+        teamTag: "For the Global Team",
+        heroTitle: "Slide <em>Localize</em>",
+        heroLead: "Translate investor decks to EN · 中文 · 한국어 · 日本語 while keeping layout intact. Built for Samsung Ventures Global Team.",
+        koGuide: "<strong>Quick start:</strong> Upload PDF/PPTX → pick language (한국어 supported) → Submit. Default Image engine needs no API key. Jobs are private to this browser tab.",
+        jobsTitle: "Jobs",
+        refreshing: "Refreshing…",
+        jobsEmpty: "No jobs yet. Upload a PDF, PPTX, or ZIP to begin.",
+        fileLabel: "File",
+        dropTitle: "Drop PDF / PPTX / ZIP here",
+        dropHint: "PDF · PPTX (auto-convert) · ZIP of page PNGs · up to ~100 pages",
+        targetLang: "Target language",
+        removeWm: "Remove watermarks",
+        batchSize: "Batch size",
+        batch5: "5 · safer",
+        batch8: "8 · balanced",
+        batch10: "10 · faster",
+        batch12: "12 · default",
+        batch15: "15 · max",
+        advanced: "Advanced",
+        imageEngine: "Image engine",
+        imageHelp: "How each slide is redrawn. Default Cursor GenerateImage needs no key. External engines need a key.",
+        provider: "Provider",
+        model: "Model",
+        llmAgent: "LLM / agent",
+        llmHelp: "Orchestration uses Cursor Automation. Pick another LLM when you want the agent to prefer that API for reasoning.",
+        apiKeys: "Provider API keys",
+        keysHelp: "Stored on the job only (hidden from the Jobs board). Prefer Fly secrets: <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ARK_API_KEY</code> · <code>DASHSCOPE_API_KEY</code> · <code>DEEPSEEK_API_KEY</code> · <code>MOONSHOT_API_KEY</code> · <code>FAL_KEY</code>",
+        submit: "Submit job",
+        footer: "Provided for <strong>Samsung Ventures Global Team</strong><br />Slide localization · layout-preserving · multi-language",
+        live: "Live",
+        inProgress: " in progress",
+        watch: "Watch",
+        downloadPdf: "Download PDF",
+        delete: "Delete",
+        deleteConfirm: "Delete this job and its files from the server?",
+        chooseFile: "Please choose a PDF, PPTX, or ZIP of page images.",
+        submitting: "Submitting…",
+        downloading: "Downloading…",
+        downloaded: "Downloaded",
+        retryDownload: "Retry download",
+        downloadFailed: "Download failed: ",
+        apiError: "API error",
+        cannotReach: "Cannot reach API.\n",
+        estimated: "Estimated finish: ",
+        automationError: "Automation error",
+        unavailable: "Unavailable",
+        offline: "Offline",
+        updated: "Updated ",
+        batch: " · batch ",
+      },
+      ko: {
+        teamTag: "글로벌 팀용",
+        heroTitle: "Slide <em>Localize</em>",
+        heroLead: "투자용 덱을 EN · 中文 · 한국어 · 日本語로 번역하면서 레이아웃을 유지합니다. Samsung Ventures Global Team용.",
+        koGuide: "<strong>빠른 시작:</strong> PDF/PPTX 업로드 → 언어 선택(한국어 지원) → 제출. 기본 Image 엔진은 API 키가 필요 없습니다. 작업은 이 브라우저 탭에서만 보입니다.",
+        jobsTitle: "작업",
+        refreshing: "새로고침 중…",
+        jobsEmpty: "아직 작업이 없습니다. PDF, PPTX 또는 ZIP을 업로드하세요.",
+        fileLabel: "파일",
+        dropTitle: "PDF / PPTX / ZIP을 여기에 놓으세요",
+        dropHint: "PDF · PPTX(자동 변환) · 페이지 PNG ZIP · 최대 약 100페이지",
+        targetLang: "대상 언어",
+        removeWm: "워터마크 제거",
+        batchSize: "배치 크기",
+        batch5: "5 · 안정",
+        batch8: "8 · 균형",
+        batch10: "10 · 빠름",
+        batch12: "12 · 기본",
+        batch15: "15 · 최대",
+        advanced: "고급 설정",
+        imageEngine: "이미지 엔진",
+        imageHelp: "각 슬라이드를 다시 그리는 방식입니다. 기본 Cursor GenerateImage는 키가 필요 없습니다. 외부 엔진은 API 키가 필요합니다.",
+        provider: "프로바이더",
+        model: "모델",
+        llmAgent: "LLM / 에이전트",
+        llmHelp: "오케스트레이션은 Cursor Automation을 사용합니다. 추론에 다른 LLM을 선호하면 여기서 선택하세요.",
+        apiKeys: "프로바이더 API 키",
+        keysHelp: "작업에만 저장되며 Jobs 목록에는 표시되지 않습니다. Fly secrets 권장: <code>GEMINI_API_KEY</code> · <code>OPENAI_API_KEY</code> · <code>ARK_API_KEY</code> · <code>DASHSCOPE_API_KEY</code> · <code>DEEPSEEK_API_KEY</code> · <code>MOONSHOT_API_KEY</code> · <code>FAL_KEY</code>",
+        submit: "작업 제출",
+        footer: "<strong>Samsung Ventures Global Team</strong>용<br />슬라이드 로컬라이즈 · 레이아웃 유지 · 다국어",
+        live: "실시간",
+        inProgress: "건 진행 중",
+        watch: "보기",
+        downloadPdf: "PDF 다운로드",
+        delete: "삭제",
+        deleteConfirm: "이 작업과 서버上的 파일을 삭제할까요?",
+        chooseFile: "PDF, PPTX 또는 페이지 이미지 ZIP을 선택해 주세요.",
+        submitting: "제출 중…",
+        downloading: "다운로드 중…",
+        downloaded: "다운로드 완료",
+        retryDownload: "다시 다운로드",
+        downloadFailed: "다운로드 실패: ",
+        apiError: "API 오류",
+        cannotReach: "API에 연결할 수 없습니다.\n",
+        estimated: "예상 완료: ",
+        automationError: "Automation 오류",
+        unavailable: "사용 불가",
+        offline: "오프라인",
+        updated: "업데이트 ",
+        batch: " · 배치 ",
+      },
+    };
+    // fix mixed script typo in ko deleteConfirm
+    I18N.ko.deleteConfirm = "이 작업과 서버의 파일을 삭제할까요?";
+
+    let uiLang = localStorage.getItem(LS_UI) || ((navigator.language || "").toLowerCase().startsWith("ko") ? "ko" : "en");
+    function t(key) {
+      return (I18N[uiLang] && I18N[uiLang][key]) || I18N.en[key] || key;
+    }
+    function applyUiLang(lang) {
+      uiLang = lang === "ko" ? "ko" : "en";
+      localStorage.setItem(LS_UI, uiLang);
+      document.documentElement.lang = uiLang === "ko" ? "ko" : "en";
+      document.getElementById("uiLangEn").classList.toggle("active", uiLang === "en");
+      document.getElementById("uiLangKo").classList.toggle("active", uiLang === "ko");
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (key && t(key) != null) el.textContent = t(key);
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+        const key = el.getAttribute("data-i18n-html");
+        if (key && t(key) != null) el.innerHTML = t(key);
+      });
+      const drop = document.getElementById("drop");
+      if (drop) drop.setAttribute("aria-label", t("dropTitle"));
+      if (!selectedFile) {
+        const fl = document.getElementById("fileLabel");
+        if (fl) fl.textContent = t("dropTitle");
+      }
+      if (typeof refreshJobsBoard === "function") refreshJobsBoard();
+    }
+
     const drop = document.getElementById("drop");
     const fileInput = document.getElementById("file");
     const fileLabel = document.getElementById("fileLabel");
@@ -802,7 +978,7 @@
         ? "Next: " + missing.slice(0, Number(j.batch_size || 8)).map((n) => "p" + String(n).padStart(2, "0")).join(", ")
         : (prog.total && prog.done >= prog.total ? "All pages ready." : "");
       const wh = j.webhook_error
-        ? "Automation error (" + (j.webhook_status || "?") + "): " + j.webhook_error
+        ? t("automationError") + " (" + (j.webhook_status || "?") + "): " + j.webhook_error
         : "";
       const ready = j.status === "assembled" || (j.output_pdfs && j.output_pdfs.length);
       const kind = ready ? "ok" : (j.status === "failed" || j.webhook_error) ? "err" : "info";
@@ -817,12 +993,12 @@
         "<div class='bar" + (ready ? " ok" : "") + "' aria-hidden='true'><i style='width:" + prog.pct + "%'></i></div>" +
         "<div class='meta'>" + esc(j.message || "") +
           (batchHint ? "\n" + esc(batchHint) + " · next " + esc(next) : "") +
-          (eta && !ready ? "\nEstimated finish: " + esc(eta) + (j.progress && j.progress.eta_at ? " (" + esc(String(j.progress.eta_at).replace("T", " ").slice(0, 16)) + " UTC)" : "") : "") +
+          (eta && !ready ? "\n" + t("estimated") + esc(eta) + (j.progress && j.progress.eta_at ? " (" + esc(String(j.progress.eta_at).replace("T", " ").slice(0, 16)) + " UTC)" : "") : "") +
           (wh ? "\n" + esc(wh) : "") +
-          "\nUpdated " + esc(j.updated_at || "") +
+          "\n" + t("updated") + esc(j.updated_at || "") +
         "</div>" +
         (ready
-          ? "<button type='button' class='dl' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>"
+          ? "<button type='button' class='dl' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>" + esc(t("downloadPdf")) + "</button>"
           : "")
       );
       const btn = statusEl.querySelector("[data-dl]");
@@ -836,15 +1012,15 @@
       const prev = btn ? btn.textContent : "";
       if (btn) {
         btn.disabled = true;
-        btn.textContent = "Downloading…";
+        btn.textContent = t("downloading");
       }
       try {
         const r = await fetch(base + "/v1/jobs/" + encodeURIComponent(runId) + "/download", {
           headers: authHeaders(),
         });
         if (!r.ok) {
-          const t = await r.text();
-          throw new Error(t || ("HTTP " + r.status));
+          const errText = await r.text();
+          throw new Error(errText || ("HTTP " + r.status));
         }
         const blob = await r.blob();
         const url = URL.createObjectURL(blob);
@@ -855,14 +1031,14 @@
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1500);
-        if (btn) btn.textContent = "Downloaded";
+        if (btn) btn.textContent = t("downloaded");
       } catch (e) {
-        if (btn) btn.textContent = "Retry download";
-        setStatus("err", "Download failed: " + (e && e.message ? e.message : e));
+        if (btn) btn.textContent = t("retryDownload");
+        setStatus("err", t("downloadFailed") + (e && e.message ? e.message : e));
       } finally {
         if (btn) {
           btn.disabled = false;
-          setTimeout(() => { if (btn.textContent === "Downloaded") btn.textContent = prev || "Download PDF"; }, 2000);
+          setTimeout(() => { if (btn.textContent === t("downloaded")) btn.textContent = prev || t("downloadPdf"); }, 2000);
         }
       }
     }
@@ -871,10 +1047,10 @@
       const running = (jobs || []).filter((j) => isRunning(j.status));
       const recent = (jobs || []).slice(0, 12);
       jobsHint.textContent = running.length
-        ? running.length + " in progress"
-        : "Live";
+        ? running.length + t("inProgress")
+        : t("live");
       if (!recent.length) {
-        jobsList.innerHTML = "<div class='empty'>No jobs yet. Upload a PDF, PPTX, or ZIP to begin.</div>";
+        jobsList.innerHTML = "<div class='empty'>" + esc(t("jobsEmpty")) + "</div>";
         return;
       }
       jobsList.innerHTML = recent.map((j) => {
@@ -884,11 +1060,11 @@
         const stateClass = ready ? "ready" : j.status === "failed" ? "failed" : isRunning(j.status) ? "running" : "";
         const fname = (j.output_pdfs && j.output_pdfs[0]) || (j.run_id + ".pdf");
         const actions = [];
-        actions.push("<button type='button' class='ghost' data-watch='" + esc(j.run_id) + "'>Watch</button>");
+        actions.push("<button type='button' class='ghost' data-watch='" + esc(j.run_id) + "'>" + esc(t("watch")) + "</button>");
         if (ready) {
-          actions.push("<button type='button' class='dl sm' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>Download PDF</button>");
+          actions.push("<button type='button' class='dl sm' data-dl='" + esc(j.run_id) + "' data-name='" + esc(fname) + "'>" + esc(t("downloadPdf")) + "</button>");
         }
-        actions.push("<button type='button' class='ghost' data-del='" + esc(j.run_id) + "'>Delete</button>");
+        actions.push("<button type='button' class='ghost' data-del='" + esc(j.run_id) + "'>" + esc(t("delete")) + "</button>");
         return (
           "<div class='job " + stateClass + (active ? " active" : "") + "'>" +
             "<div class='job-top'>" +
@@ -896,13 +1072,13 @@
               "<span class='badge " + badgeClass(j.status) + "'>" + esc(j.status || "?") + "</span>" +
             "</div>" +
             "<div class='pct'><span>" + esc((j.target_lang || "").toUpperCase()) +
-              (j.batch_size ? " · batch " + esc(j.batch_size) : "") +
+              (j.batch_size ? t("batch") + esc(j.batch_size) : "") +
               "</span><span>" + esc(prog.label) + " (" + prog.pct + "%)" +
               (formatEta(j) ? " · " + esc(formatEta(j)) : "") +
               "</span></div>" +
             "<div class='bar" + (ready ? " ok" : "") + "'><i style='width:" + prog.pct + "%'></i></div>" +
             "<div class='job-meta'>" + esc(j.message || "") +
-              (j.updated_at ? "\nUpdated " + esc(j.updated_at) : "") +
+              (j.updated_at ? "\n" + t("updated") + esc(j.updated_at) : "") +
             "</div>" +
             "<div class='job-actions'>" + actions.join("") + "</div>" +
           "</div>"
@@ -920,7 +1096,7 @@
     }
 
     async function deleteJob(base, runId) {
-      if (!runId || !confirm("Delete this job and its files from the server?")) return;
+      if (!runId || !confirm(t("deleteConfirm"))) return;
       await fetch(base + "/v1/jobs/" + encodeURIComponent(runId), {
         method: "DELETE",
         headers: authHeaders(),
@@ -962,7 +1138,7 @@
       try {
         const r = await fetch(base + "/v1/jobs", { headers: authHeaders() });
         if (!r.ok) {
-          jobsHint.textContent = "Unavailable";
+          jobsHint.textContent = t("unavailable");
           return;
         }
         const data = await r.json();
@@ -975,13 +1151,13 @@
           }
         }
       } catch (e) {
-        jobsHint.textContent = "Offline";
+        jobsHint.textContent = t("offline");
       }
     }
 
     function setFile(f) {
       selectedFile = f || null;
-      fileLabel.textContent = f ? f.name : "Drop PDF / PPTX / ZIP here";
+      fileLabel.textContent = f ? f.name : t("dropTitle");
     }
 
     drop.addEventListener("click", () => fileInput.click());
@@ -1061,7 +1237,7 @@
       const base = currentBase();
       localStorage.setItem(LS_KEY, base);
       if (!selectedFile) {
-        setStatus("err", "Please choose a PDF, PPTX, or ZIP of page images.");
+        setStatus("err", t("chooseFile"));
         return;
       }
       const lang = (document.querySelector('input[name="lang"]:checked') || {}).value || "en";
@@ -1098,7 +1274,7 @@
       localStorage.setItem(LS_LLM_MODEL, llmModel.value || "");
 
       submitBtn.disabled = true;
-      setStatus("info", "Submitting…");
+      setStatus("info", t("submitting"));
       try {
         localStorage.setItem(LS_TOKEN, (accessToken.value || "").trim());
         await sessionHello();
@@ -1112,18 +1288,22 @@
         try { body = JSON.parse(text); } catch { body = { detail: text }; }
         if (!res.ok) {
           const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail || body, null, 2);
-          setStatus("err", "API error (" + res.status + ").\n\n" + detail);
+          setStatus("err", t("apiError") + " (" + res.status + ").\n\n" + detail);
           return;
         }
         progressHtml(body, base);
         startPoll(base, body.run_id);
         refreshJobsBoard();
       } catch (e) {
-        setStatus("err", "Cannot reach API.\n" + (e && e.message ? e.message : e));
+        setStatus("err", t("cannotReach") + (e && e.message ? e.message : e));
       } finally {
         submitBtn.disabled = false;
       }
     });
+
+    document.getElementById("uiLangEn").addEventListener("click", () => applyUiLang("en"));
+    document.getElementById("uiLangKo").addEventListener("click", () => applyUiLang("ko"));
+    applyUiLang(uiLang);
   </script>
 </body>
 </html>

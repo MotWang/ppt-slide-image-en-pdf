@@ -263,7 +263,8 @@ python3 workflows/ppt-slide-image-en-pdf/scripts/sync_github.py \
 
 ## Colleague web UI
 
-- Hosted: https://ppt-slide-localize.fly.dev/
+- Hosted: https://ppt-slide-localize.fly.dev/ (UI: **EN | 한국어** toggle; Korean browser defaults to 한국어)
+- Korean quick start: `skills/ppt-slide-localize/QUICKSTART.ko.md`
 - Pack: `skills/ppt-slide-localize/` · in-repo skill: `.cursor/skills/ppt-slide-image-en-pdf/SKILL.md`
 - Submit: file + language + batch size + **Image engine** + **LLM** (+ keys if not on Fly secrets)
 - Local API: `python3 workflows/ppt-slide-image-en-pdf/web/server.py`
